@@ -1,4 +1,4 @@
-#Refresh Symfony
+# Refresh Symfony
 
 A small project created to remember how Symfony works and also serve as a reference.
 
@@ -12,7 +12,7 @@ It will cover the next steps:
 - Forms.
 - Security and users.
 
-It is recommended that the steps are followed one by one since the work is incremental.
+It is recommended that the steps are followed one by one since the work is incremental. The idea is that all sections can be read in order and their instructions carried out so in the end we have some basic Symfony knowledge.
 
 ## Creating the project and setting it up.
 
@@ -35,7 +35,7 @@ It is likely that it will complain about the cache and log directories not being
 
 In any case, fix whatever you need from "config".
 
-##Setting it up on GIT...
+## Setting it up on GIT...
 
 This one is easy:
 
@@ -47,7 +47,7 @@ This one is easy:
 
 The -u is to set the tracking of your branches.
 
-##Creating a quick controller.
+## Creating a quick controller.
 
 This should be done in two parts: the route and the controller. Let us start with the route. Open the file at:
 
@@ -172,11 +172,11 @@ The final part would be to pass a variable to twig. The logic asked for a "somet
 
 That concludes the twig crash course.
 
-##Databases and Doctrine.
+## Databases and Doctrine.
 
 Doctrine is huge and I can't quite see the point in many of its features (do I really need a query builder? do I really want to delegate database related code to my PHP code?... but then again, that's strictly personal). Still, that's the ORM bundled with Symfony and even if we could use another, I think of it as kind of a... default.
 
-###Configuration
+### Configuration
 
 The first thing we need to do is to have a database running. In this case, with Lampp installed I am running a MariaDB database. The access parameters must be set in the app/config/parameters.yml file:
 
@@ -194,7 +194,7 @@ These values will later be imported into app/config/config.yml. If we want to kn
 
 If we see an error, then we did something wrong (maybe the database does not exist).
 
-###Troubleshooting with XAMPP.
+### Troubleshooting with XAMPP.
 
 If you are working with XAMPP and cannot execute the symfony console commands that will follow in this section it is likely that you may face one of these problems:
 
@@ -214,7 +214,7 @@ If you are working with XAMPP and cannot execute the symfony console commands th
 			- sudo chmod -R 0775 app/cache
 		- If you are inclined to change the user Apache runs as or to use ADL follow the solutions in https://symfony.com/doc/2.8/setup/file_permissions.html
 
-###Entities and mapping.
+### Entities and mapping.
 
 For this example we will create a very simple structure of entities: we want a list of things people borrowed from us. First we will describe the mapping.
 
@@ -239,7 +239,7 @@ There will be an error because there is no borroweditems table. It is actually a
 
 That will create the borroweditems table. If you wish to proceed classic style just log into your database and create the tables as you have always done.
 
-###Persisting data.
+### Persisting data.
 
 In order to persist our data we are going to create a new controller. Choose your own route and controller name and do the steps seen in the section "Creating a quick controller". Use this code for the controller:
 
@@ -277,7 +277,7 @@ In order to persist our data we are going to create a new controller. Choose you
 
 Navigate to it. You should see the master response and there should be three new entities in the table.
 
-###Retrieving data.
+### Retrieving data.
 
 We are going to be adding a new action to the controller used in the previous section. Do the work you need to set up your routes and use this code for the action:
 
@@ -301,7 +301,7 @@ We are going to be adding a new action to the controller used in the previous se
 
 This should display the first-template with a list of items and the people items are borrowed from. Here is where using the camelcase convention for entity properties pays off: you can use automated repository functions that you did never declare, such as findOneByName or findOneByBorrowedFrom.
 
-###Updating data.
+### Updating data.
 
 In order to update your tables, setup a new action and use this code that combines techniques seen in the two previous sections:
 
@@ -319,7 +319,7 @@ In order to update your tables, setup a new action and use this code that combin
 
 Check with your database that data was changed.
 
-###Removing data.
+### Removing data.
 
 Same as before. Setup a new action with this:
 
@@ -337,30 +337,30 @@ Same as before. Setup a new action with this:
 
 And check with your database.
 
-###More complex queries
+### More complex queries
 
 //TODO.
 
-###Custom repositories.
+### Custom repositories.
 
 //TODO.
 
-###Relationships
+### Relationships
 
 //TODO.
 
-###Database Layer interaction.
+### Database Layer interaction.
 
 //TODO.
 
-##Creating custom services
+## Creating custom services
 
 //TODO
 
-##Forms
+## Forms
 
 //TODO
 
-##Security and users.
+## Security and users.
 
 //TODO.
