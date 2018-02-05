@@ -31,7 +31,9 @@ This one is easy:
 	git add whatever files you need
 	git commit -m 'Whatever commit message you want'
 	git remote add origin url_here
-	git push origin master
+	git push -u origin master
+
+The -u is to set the tracking of your branches.
 
 ##Creating a quick controller.
 
