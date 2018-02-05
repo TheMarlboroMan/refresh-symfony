@@ -1,0 +1,26 @@
+{%extends 'master.html.twig'%}
+
+{%block stylesheets%}
+
+	{{parent()}}
+
+	<link href="{{asset('css/first-route.css')}}" rel="stylesheet" />
+	
+{%endblock%}
+
+{%block title%}
+This title has been overriden!.
+{%endblock%}
+
+{%block body%}
+
+			<div class="row">
+				<p class="explanation">This is our template that extends from <i>master</i>.</p>
+
+				{%if something is defined%}
+				<p>There's an extra thing here: "{{something}}".</p>
+				{%endif%}
+
+			</div>
+
+{%endblock%}
