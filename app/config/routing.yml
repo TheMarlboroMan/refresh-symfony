@@ -1,0 +1,7 @@
+app:
+    resource: '@AppBundle/Controller/'
+    type: annotation
+
+my-first-route:
+   path: this-is-my-first-route
+   defaults: {_controller:AppBundle:FirstRoute:showFirstRoute}
