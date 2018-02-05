@@ -23,6 +23,16 @@ It is likely that it will complain about the cache and log directories not being
 
 In any case, fix whatever you need from "config".
 
+##Setting it up on GIT...
+
+This one is easy:
+
+	git init
+	git add whatever files you need
+	git commit -m 'Whatever commit message you want'
+	git remote add origin url_here
+	git push origin master
+
 ##Creating a quick controller.
 
 This should be done in two parts: the route and the controller. Let us start with the route. Open the file at:
