@@ -1,4 +1,3 @@
-
 #Refresh Symfony
 
 A small project created to remember how Symfony works and also serve as a reference.
