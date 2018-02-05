@@ -1,0 +1,16 @@
+AppBundle\Entity\BorrowedItem:
+   type: entity
+   table: borroweditems
+   id:
+       id:
+           type: integer
+           generator: {strategy: AUTO}
+   fields:
+       name: 
+           type: string
+           length: 50
+       borrowed_from:
+           type: string
+           length: 50
+       date_borrowed:
+           type: datetime

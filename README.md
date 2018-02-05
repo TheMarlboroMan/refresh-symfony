@@ -1,7 +1,19 @@
 
 #Refresh Symfony
 
-A small project created to remember how Symfony works.
+A small project created to remember how Symfony works and also serve as a reference.
+
+It will cover the next steps:
+
+- Creating the project and setting it up.
+- Setting it up on GIT.
+- Creating a quick controller.
+- Using twig.
+- Databases and doctrine.
+- Forms.
+- Security and users.
+
+It is recommended that the steps are followed one by one since the work is incremental.
 
 ## Creating the project and setting it up.
 
@@ -160,3 +172,96 @@ The final part would be to pass a variable to twig. The logic asked for a "somet
 	return $this->render('first-template.html.twig', ['something' => 'A new beginning']);
 
 That concludes the twig crash course.
+
+##Databases and Doctrine.
+
+Doctrine is huge and I can't quite see the point in many of its features (do I really need a query builder? do I really want to delegate database related code to my PHP code?... but then again, that's strictly personal). Still, that's the ORM bundled with Symfony and even if we could use another, I think of it as kind of a... default.
+
+###Configuration
+
+The first thing we need to do is to have a database running. In this case, with Lampp installed I am running a MariaDB database. The access parameters must be set in the app/config/parameters.yml file:
+
+    database_host: Your host... most likely "localhost" if you are developing locally.
+    database_port: The port... You can leave it at null for sensible defaults.
+    database_name: The name of the database we are going to use.
+    database_user: A user name.
+    database_password: The pass of the user.
+
+These values will later be imported into app/config/config.yml. If we want to know if it works we can add something simple to the controller:
+
+	$conn=$this->get('database_connection');
+	list ($something)=$conn->fetchArray("SELECT NOW() AS now FROM DUAL");
+	return $this->render('first-template.html.twig', ['something' => $something]);
+
+If we see an error, then we did something wrong (maybe the database does not exist).
+
+###Troubleshooting with XAMPP.
+
+If you are working with XAMPP and cannot execute the symfony console commands that will follow in this section it is likely that you may face one of these problems:
+
+- Can't open mysql in default socket:
+	- This may be caused because you have two php clients... 
+		- Try using the lampp one as in /opt/lampp/bin/php app/console doctrine:schema:update.
+		- You can add the path to your PATH variable so this becomes the default.
+	- Or maybe the mysql socket of lampp is not in /var/run/mysqld/mysqld.sock, as you could expect. It is actually at /opt/lampp/var/mysql/mysql.sock. Find out which php.ini file are you using and add that socket to the pdo_mysql.default_socket key. Incidentally this is related to the problem where you cannot run the mysql client from the command line... Try using the --socket socket/path argument to the command line.
+
+- Cannot write to log files:
+	- This one is ugly. The user of your php cli and the user of your Xampp PHP are different. You can do a few things here, some may work, some may not.
+		- sudo the command (sudo app/console generate:doctrine:entities AppBundle) and forget about it.
+		- Add your user to the daemon group and set appropriate permissions for the files and directories.
+			- sudo usermod -a -G daemon your_user
+			- log out and log in so the user group thing refreshes.
+			- sudo chmod -R 0775 app/logs
+			- sudo chmod -R 0775 app/cache
+		- If you are inclined to change the user Apache runs as or to use ADL follow the solutions in https://symfony.com/doc/2.8/setup/file_permissions.html
+
+###Entities and mapping.
+
+For this example we will create a very simple structure of entities: we want a list of things people borrowed from us. First we will describe the mapping.
+
+	mkdir -p src/AppBundle/Resources/config/doctrine/
+	touch src/AppBundle/Resources/config/doctrine/BorrowedItem.orm.yml
+
+That is the mapping file, it will be used to represent the borrowed item with its name, name of the person who borrowed and time when they borrowed it. Take a look at the contents of the file in the project.
+
+Now, you could use the symfony console to generate the Entity file. If you're having problems with this, try checking the troubleshooting section above:
+
+	php app/console generate:doctrine:entities AppBundle
+
+This will auto generate the entity class in AppBundle/Entity. All properties will preserve their names but method getters and setters will use camelcase (as in date_borrowed becomes getDateBorrowed and setDateBorrowed). You may want to make interfaces fluent by having all setters return "this", so you can go $object->setThis('a')->setThat('b');
+
+If you want, you can simply create the file yourself:
+
+	mkdir src/AppBundle/Entity
+	touch src/AppBundle/Entity/BorrowedItem.php
+	create the class in the AppBundle\Entity namespace, with its getters and setters.
+
+In any case, I don't think it's a good idea to add any logic in that class, so you may run the console command and forget you ever saw that.
+
+Next step, let us check if the schema is up to date with the database...
+
+	php app/console doctrine:schema:validate
+
+There will be an error because there is no borroweditems table. At this point we can either proceed Doctrine style or classic style. To do it Doctrine style:
+
+	php app/console doctrine:schema:create
+
+That will create the borroweditems table. If you wish to proceed classic style just log into your database and create the tables as you wish.
+
+
+
+###Relationships
+
+//TODO.
+
+###Database Layer.
+
+//TODO.
+
+##Forms
+
+//TODO
+
+##Security and users.
+
+//TODO.
