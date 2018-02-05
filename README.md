@@ -222,41 +222,141 @@ For this example we will create a very simple structure of entities: we want a l
 	mkdir -p src/AppBundle/Resources/config/doctrine/
 	touch src/AppBundle/Resources/config/doctrine/BorrowedItem.orm.yml
 
-That is the mapping file, it will be used to represent the borrowed item with its name, name of the person who borrowed and time when they borrowed it. Take a look at the contents of the file in the project.
+That is the mapping file, it will be used to represent the borrowed item with its name, name of the person who borrowed and time when they borrowed it. Take a look at the contents of the file in the project. Notice how we use camelcase for property names: it will come handy later when using repositories.
 
 Now, you could use the symfony console to generate the Entity file. If you're having problems with this, try checking the troubleshooting section above:
 
 	php app/console generate:doctrine:entities AppBundle
 
-This will auto generate the entity class in AppBundle/Entity. All properties will preserve their names but method getters and setters will use camelcase (as in date_borrowed becomes getDateBorrowed and setDateBorrowed). You may want to make interfaces fluent by having all setters return "this", so you can go $object->setThis('a')->setThat('b');
-
-If you want, you can simply create the file yourself:
-
-	mkdir src/AppBundle/Entity
-	touch src/AppBundle/Entity/BorrowedItem.php
-	create the class in the AppBundle\Entity namespace, with its getters and setters.
-
-In any case, I don't think it's a good idea to add any logic in that class, so you may run the console command and forget you ever saw that.
+This will auto generate the entity class in AppBundle/Entity. All properties will preserve their names but method getters and setters will use camelcase (as in date_borrowed becomes getDateBorrowed and setDateBorrowed). If you want, you can simply create the file yourself and populate it with a class in the AppBundle\Entity namespace, with its getters and setters. In any case, I don't think it's a good idea to add any logic in that class, so you may run the console command and forget you ever saw that.
 
 Next step, let us check if the schema is up to date with the database...
 
 	php app/console doctrine:schema:validate
 
-There will be an error because there is no borroweditems table. At this point we can either proceed Doctrine style or classic style. To do it Doctrine style:
+There will be an error because there is no borroweditems table. It is actually a good idea to validate the schema as you go on adding entities... Anyway, we need to create the table. At this point we can either proceed Doctrine style or classic style. To do it Doctrine style:
 
 	php app/console doctrine:schema:create
 
-That will create the borroweditems table. If you wish to proceed classic style just log into your database and create the tables as you wish.
+That will create the borroweditems table. If you wish to proceed classic style just log into your database and create the tables as you have always done.
 
+###Persisting data.
 
+In order to persist our data we are going to create a new controller. Choose your own route and controller name and do the steps seen in the section "Creating a quick controller". Use this code for the controller:
+
+	<?php
+	namespace AppBundle\Controller;
+
+	use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+	use AppBundle\Entity\BorrowedItem;
+
+	class ChooseYourOwnNameController extends Controller {
+
+		public function ChooseYourOwnNameAction() {
+
+			$em=$this->get('doctrine')->getManager();
+
+			$setvalues=function(array $data) use ($em) {
+				$item=new BorrowedItem;
+				$item->setName($data[0]);
+				$item->setBorrowedFrom($data[1]);
+				$item->setDateBorrowed($data[2]);
+				$em->persist($item);
+			};
+
+			$data=[ ["Snow Crash book", "My brother", new \DateTime('2015-01-12')],
+				["A wireless keyboard", "My Mother", new \DateTime('2015-02-22')],
+				["My Dark Side of the Moon record", "My Father", new \DateTime('2017-04-25')]];
+
+			array_walk($data, $setvalues);
+
+			$em->flush();
+
+			return $this->render('master.html.twig');
+		}
+	}
+
+Navigate to it. You should see the master response and there should be three new entities in the table.
+
+###Retrieving data.
+
+We are going to be adding a new action to the controller used in the previous section. Do the work you need to set up your routes and use this code for the action:
+
+	public function yourActionNameHereAction() {
+
+		$retrieved_item_names=[];
+		$append_data=function(BorrowedItem $item=null) use (&$retrieved_item_names) {
+			if($item) {
+				$retrieved_item_names[]=$item->getName().' from '.$item->getBorrowedFrom();
+			}
+		};
+
+		$repository=$this->get('doctrine')->getRepository(BorrowedItem::class);
+		$append_data($repository->find(1));
+		$append_data($repository->findOneByName('My Dark Side of the Moon record'));
+		$append_data($repository->findOneByBorrowedFrom('My Mother'));
+		$append_data($repository->findOneById(9999));
+
+		return $this->render('first-template.html.twig', ['something' => implode($retrieved_item_names, ', ')]);
+	}
+
+This should display the first-template with a list of items and the people items are borrowed from. Here is where using the camelcase convention for entity properties pays off: you can use automated repository functions that you did never declare, such as findOneByName or findOneByBorrowedFrom.
+
+###Updating data.
+
+In order to update your tables, setup a new action and use this code that combines techniques seen in the two previous sections:
+
+	public function yourUpdateNameHere() {
+
+		$item=$this->get('doctrine')->getRepository(BorrowedItem::class)->find(1);
+		$item->setName("Antique jacket")->setDateBorrowed(new \DateTime())->setBorrowedFrom("My friend");
+
+		$em=$this->get('doctrine')->getManager();
+		$em->persist($item);
+		$em->flush();
+
+		return $this->render('master.html.twig');
+	}
+
+Check with your database that data was changed.
+
+###Removing data.
+
+Same as before. Setup a new action with this:
+
+	public function yourDeleteNameHereAction() {
+
+		$d=$this->get('doctrine');
+		$item=$d->getRepository(BorrowedItem::class)->findOneByBorrowedFrom('My Mother');
+
+		$em=$d->getManager();
+		$em->remove($item);
+		$em->flush();
+
+		return $this->render('master.html.twig');
+	}
+
+And check with your database.
+
+###More complex queries
+
+//TODO.
+
+###Custom repositories.
+
+//TODO.
 
 ###Relationships
 
 //TODO.
 
-###Database Layer.
+###Database Layer interaction.
 
 //TODO.
+
+##Creating custom services
+
+//TODO
 
 ##Forms
 

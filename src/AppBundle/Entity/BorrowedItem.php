@@ -22,12 +22,12 @@ class BorrowedItem
     /**
      * @var string
      */
-    private $borrowed_from;
+    private $borrowedFrom;
 
     /**
      * @var \DateTime
      */
-    private $date_borrowed;
+    private $dateBorrowed;
 
 
     /**
@@ -64,48 +64,48 @@ class BorrowedItem
     }
 
     /**
-     * Set borrowed_from
+     * Set borrowedFrom
      *
      * @param string $borrowedFrom
      * @return BorrowedItem
      */
     public function setBorrowedFrom($borrowedFrom)
     {
-        $this->borrowed_from = $borrowedFrom;
+        $this->borrowedFrom = $borrowedFrom;
 
         return $this;
     }
 
     /**
-     * Get borrowed_from
+     * Get borrowedFrom
      *
      * @return string 
      */
     public function getBorrowedFrom()
     {
-        return $this->borrowed_from;
+        return $this->borrowedFrom;
     }
 
     /**
-     * Set date_borrowed
+     * Set dateBorrowed
      *
      * @param \DateTime $dateBorrowed
      * @return BorrowedItem
      */
     public function setDateBorrowed($dateBorrowed)
     {
-        $this->date_borrowed = $dateBorrowed;
+        $this->dateBorrowed = $dateBorrowed;
 
         return $this;
     }
 
     /**
-     * Get date_borrowed
+     * Get dateBorrowed
      *
      * @return \DateTime 
      */
     public function getDateBorrowed()
     {
-        return $this->date_borrowed;
+        return $this->dateBorrowed;
     }
 }

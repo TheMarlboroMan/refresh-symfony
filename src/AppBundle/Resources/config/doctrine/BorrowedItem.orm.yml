@@ -9,8 +9,10 @@ AppBundle\Entity\BorrowedItem:
        name: 
            type: string
            length: 50
-       borrowed_from:
+       borrowedFrom:
            type: string
            length: 50
-       date_borrowed:
+           column: borrowed_from
+       dateBorrowed:
            type: datetime
+           column: date_borrowed

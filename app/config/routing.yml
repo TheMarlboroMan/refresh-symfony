@@ -5,3 +5,19 @@ app:
 my-first-route:
    path: this-is-my-first-route
    defaults: {_controller:AppBundle:FirstRoute:showFirstRoute}
+
+populate-borroweditems-test:
+   path: setup/pupulate-borroweditems
+   defaults: {_controller:AppBundle:Setups:populateBorrowedItems}
+
+read-borroweditems-test:
+   path: setup/read-borroweditems
+   defaults: {_controller:AppBundle:Setups:readBorrowedItems}
+
+update-borroweditems-test:
+   path: setup/update-borroweditems
+   defaults: {_controller:AppBundle:Setups:updateBorrowedItems}
+
+delete-borroweditems-test:
+   path: setup/delete-borroweditems
+   defaults: {_controller:AppBundle:Setups:deleteBorrowedItems}
