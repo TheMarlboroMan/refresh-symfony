@@ -1,0 +1,17 @@
+AppBundle\Entity\Person:
+   type: entity
+   repositoryClass: AppBundle\Repository\PersonRepository
+   table: people
+   id:
+       id:
+           type: integer
+           generator: {strategy: AUTO}
+   fields:
+       name: 
+           type: string
+           length: 50
+           column: name
+       surname:
+           type: string
+           length: 50
+           column: surname

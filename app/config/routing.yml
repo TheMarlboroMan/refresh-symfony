@@ -21,3 +21,9 @@ update-borroweditems-test:
 delete-borroweditems-test:
    path: setup/delete-borroweditems
    defaults: {_controller:AppBundle:Setups:deleteBorrowedItems}
+
+repository-person-test:
+   path: tests/repository-person/{paramname}
+   defaults: {_controller:AppBundle:Tests:usePersonRepository}
+   requirements:
+     paramname: '[a-zA-z]+'

@@ -9,6 +9,7 @@ It will cover the next steps:
 - Creating a quick controller.
 - Using twig.
 - Databases and doctrine.
+- Custom services.
 - Forms.
 - Security and users.
 
@@ -337,17 +338,77 @@ Same as before. Setup a new action with this:
 
 And check with your database.
 
-### More complex queries
+### Custom repositories
 
-//TODO.
+We are going to add a custom repository. For that, we will first create a new Entity so we don't have to touch our previous examples. This entity will be a "person", with name and surname. Follow these steps:
 
-### Custom repositories.
+	- Create the mapping file with the id, name and surname fields.
+	- Run "php app/console doctrine:schema:validate". It will tell you that there's no Person entity.
+	- Run "php app/console doctrine:generate:entities AppBundle:Person --path src. "people" is the name of the table in the mapping file. 
+	- Run "php app/console doctrine:schema:validate". It will tell you that there's no sync with the database (there's no people table).
+	- Run "php app/console doctrine:schema:update". We used "create" before because there were no tables... Now we should use update. It will tell us how many changes are needed, but will not execute them.
+	- You can now choose one of these options:
+		- "Run "php app/console doctrine:schema:update --dump-sql" to have the console tell you the SQL you need to execute on your server.
+		- "Run "php app/console doctrine:schema:update --force" to have Doctrine run the SQL for you.
+	- Add this line to your repository class at the same level as the "type" key: "repositoryClass: AppBundle\Repository\PersonRepository"
+		- This will let you map your entity to your repository class!. If you fail to do this or mistype the name you'll get errors.
+	- Create the repository file and directory:
+		- mkdir src/AppBundle/Repository
+		- touch src/AppBundle/Repository/PersonRepository.php
+	- Now for the fun part. The class must:
+		- Exist in the correct namespace (in this case AppBundle\Repository)
+		- Extend from Doctrine\ORM\EntityRepository
+		- Be named correctly (in this case PersonRepository, as in classname + repository).
 
-//TODO.
+Our example code includes a bit of DQL. If you think DQL is one too many layers of abstraction, I agree with you.
+
+	<?php
+	namespace AppBundle\Repository;
+
+	use Doctrine\ORM\EntityRepository;
+
+	class PersonRepository extends EntityRepository {
+
+		public function findAllNameLike($name) {
+
+			$dql_string="SELECT p FROM AppBundle:Person p WHERE p.name LIKE :paramname ORDER by p.name ASC";
+
+			return $this->getEntityManager()
+				->createQuery($dql_string)
+				->setParameter('paramname', '%'.$name.'%')
+				->getResult();
+		}
+	}
+
+Create a route and a controller to test this. In our example we created a route that needs a parameter (a word) that will be passed to the repository method:
+
+	repository-person-test:
+	   path: tests/repository-person/{paramname}
+	   defaults: {_controller:AppBundle:Tests:usePersonRepository}
+	   requirements:
+	     paramname: '[a-zA-z]+'
+
+This parameter enters as the method's parameter as long as they are named the same. The parameter is passed to the repository:
+
+	public function usePersonRepositoryAction($paramname) {
+
+		$people=$this->get('doctrine')->getRepository('AppBundle:Person')->findAllNameLike($paramname);
+
+		$contents="No people found by ".$paramname;
+		if(count($people)) {
+			$contents=substr(array_reduce($people, function($carry, Person $item) {$carry.=$item->getName().' '.$item->getSurname().', '; return $carry;}, "People found by ".$paramname.": "), 0, -2);
+		}
+
+		return $this->render('first-template.html.twig', ['something' => $contents]);
+	}
+
+One thing of note: using custom repositories does not disable the "built in" findBy methods, so this would still work even if we didn't declare it:
+
+	$this->get('doctrine')->getRepository('AppBundle:Person')->findByName('Peter');
 
 ### Relationships
 
-//TODO.
+//TODO. add appointment with people, as an example.
 
 ### Database Layer interaction.
 
