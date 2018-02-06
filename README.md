@@ -1,6 +1,6 @@
 # Refresh Symfony
 
-A small project created to remember how Symfony works and also serve as a reference.
+A small project created to remember how Symfony 2.8 works and also serve as a reference... This is not meant to be a symfony crash course, but rather a refresher (hence the name).
 
 It will cover the next steps:
 
@@ -13,7 +13,9 @@ It will cover the next steps:
 - Forms.
 - Security and users.
 
-It is recommended that the steps are followed one by one since the work is incremental. The idea is that all sections can be read in order and their instructions carried out so in the end we have some basic Symfony knowledge.
+Each step will have examples of code in the repository. All work will be done with new examples so the code in the repository is always "final", that is, new features are introduced in new modules of the final application. It is recommended that the steps are followed one by one since the work is incremental. The idea is that all sections can be read in order and their instructions carried out so in the end we have some basic Symfony knowledge.
+
+One more thing, topics are not restricted to their chapter (for example, we see some more twig features in the database chapter). Knowledge is just added incrementally.
 
 ## Creating the project and setting it up.
 
@@ -175,11 +177,11 @@ That concludes the twig crash course.
 
 ## Databases and Doctrine.
 
-Doctrine is huge and I can't quite see the point in many of its features (do I really need a query builder? do I really want to delegate database related code to my PHP code?... but then again, that's strictly personal). Still, that's the ORM bundled with Symfony and even if we could use another, I think of it as kind of a... default.
+Doctrine is huge and I can't quite see the point in many of its features (do I really need a query builder? do I really want to delegate database related code to my PHP code?... but then again, that's strictly personal). Still, that's the ORM bundled with Symfony and even if we could use another (remember that Symfony uses some parts of Doctrine even for non-database stuff, so no complete removal for you), I think of it as kind of a... default.
 
 ### Configuration
 
-The first thing we need to do is to have a database running. In this case, with Lampp installed I am running a MariaDB database. The access parameters must be set in the app/config/parameters.yml file:
+The first thing we need to do is to have a database running. In this case, with Xampp installed I am running a MariaDB database that luckily behaves like MySQL. The access parameters must be set in the app/config/parameters.yml file:
 
     database_host: Your host... most likely "localhost" if you are developing locally.
     database_port: The port... You can leave it at null for sensible defaults.
@@ -496,24 +498,139 @@ First, create a procedure in your database. The following code creates the proce
 	END//
 	DELIMITER ;
 
+If you have been following so far, we have seen no way of issuing a SQL command through Doctrine (as we would with mysqli::query or PDO::query... or even mysql_query). However, any EntityManager can issue a call to createNativeQuery to do that. There is, however, a catch: because you are using Doctrine you need to map the results of your query to something, a ResultSetMapping object that must be provided as a second parameter to createNativeQuery. 
 
+To first approach it, create a new controller and action (don't forget to map it in routing.yml!), perhaps a clone of the ones used in the "Relationships" section. Once inside, use this code for the body of the action:
 
+	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+	$rsm->addEntityResult('AppBundle:ContactBook', 'b');
+	$rsm->addFieldResult('b', 'id', 'id');
+	$rsm->addFieldResult('b', 'name', 'name');
 
-DROP PROCEDURE IF EXISTS contact_book_by_quantity_full;
-DELIMITER //
-CREATE PROCEDURE contact_book_by_quantity_full(IN _q INTEGER)
-BEGIN
-SELECT 
-cb.id AS cb_id, cb.name AS cb_name,
-c.id AS c_id, c.name AS c_name, c.phone AS c_phone, c.email AS c_email
-FROM contact_books cb 
-JOIN contacts c ON cb.id=c.contact_book_id 
-WHERE cb.id IN (SELECT cb.id FROM contact_books cb LEFT JOIN contacts c ON cb.id=c.contact_book_id GROUP BY cb.id HAVING COUNT(c.id) > _q);
-END
-//
-DELIMITER ;
+	$qs="CALL contact_book_by_quantity(?)";
+	$books=$this->get('doctrine')->getManager()
+		->createNativeQuery($qs, $rsm)
+		->setParameter(1, $quantity)
+		->getResult();
 
+	return $this->render('contacts.html.twig', ['books' => $books, 'quantity' => $quantity]);
 
+A dissection:
+
+	- First we create an empty ResultSetMapping object. 
+		- We tell it that our query will contain an entity (AppBundle:ContactBook, or AppBundle\Entity\ContactBook for long, with the alias "b").
+		- We tell it that there will be two result fields for the entity aliased as "b": the column "id" will be mapped to the field "id" and so on.
+	- Next we create the query string. This query string will not be touched by Doctrine, so make sure it is foolproof and try to use parameters to avoid SQL injections.
+	- We used "getManager" instead of "getEntityManager", which is due for deprecation.
+	- Finally, we ask the entity manager to create the native query, assign the parameter and get its result.
+
+Go ahead and navigate to the controller. The result cannot be distinguished from our previous work, including the number of queries done: one for your procedure and one more for each collection of contacts (you can see that in the debug bar). In the background, Doctrine still queries the database for information about the contact entities. Since we are trying to drop all responsibility over the database layer, we can do a bit better. First, create a new procedure with this code (a little something, if you are planning on copying and pasting these to your sql console remove all tabs!!!):
+
+	DROP PROCEDURE IF EXISTS contact_book_by_quantity_full;
+	DELIMITER //
+	CREATE PROCEDURE contact_book_by_quantity_full(IN _q INTEGER)
+	BEGIN
+		SELECT cb.id AS cb_id, cb.name AS cb_name, c.id AS c_id, c.name AS c_name, c.phone AS c_phone, c.email AS c_email 
+		FROM contact_books cb JOIN contacts c ON cb.id=c.contact_book_id 
+		WHERE cb.id IN (SELECT cb.id FROM contact_books cb LEFT JOIN contacts c ON cb.id=c.contact_book_id GROUP BY cb.id HAVING COUNT(c.id) > _q);
+	END
+	//
+	DELIMITER ;
+
+That handful will return as many rows as contacts and every row contains the information for both the contact and also the contact book (yes, there's some repetition going on there). Pay very close attention on how we alias the fields so there are no repeated columns. Also, notice how the foreign key is not selected either.
+
+Next create a new action and route it. It looks almost like the one before:
+
+	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+	$rsm->addEntityResult('AppBundle:ContactBook', 'cb');
+	$rsm->addFieldResult('cb', 'cb_id', 'id');
+	$rsm->addFieldResult('cb', 'cb_name', 'name');
+	$rsm->addJoinedEntityResult('AppBundle:Contact', 'c', 'cb', 'contacts');
+	$rsm->addFieldResult('c', 'c_id', 'id');
+	$rsm->addFieldResult('c', 'c_name', 'name');
+	$rsm->addFieldResult('c', 'c_phone', 'phone');
+	$rsm->addFieldResult('c', 'c_email', 'email');
+
+	$qs="CALL contact_book_by_quantity_full(?)";
+	$books=$this->get('doctrine')->getManager()
+		->createNativeQuery($qs, $rsm)
+		->setParameter(1, $quantity)
+		->getResult();
+
+	return $this->render('contacts.html.twig', ['books' => $books, 'quantity' => $quantity]);
+
+In detail you can see that:
+
+	- It is almost the same code.
+	- We add a joined entity result: the contact, aliased as "c", whose parent is the entity aliased as "cb" (in this case ContactBook, we aliased it as "b" before) and has a property "contacts" to store the "c" entity. 
+	- Next we define the fields for "c". I never tried but I think you can do these field definitions in any order you wish.
+
+Try it and check the results: the same, but we did only one database call. That doesn't neccesarily mean faster code, but it means that your database code is in control now. Even better, you no longer need to ask your database specialist to learn DQL, or even better, you can ask your database specialist to write all queries for you. 
+
+Still, this technique allows only for values mapped to entities. What about a simple procedure that counts contacts and groups them by book?. Execute the following in your database prompt:
+
+	DROP PROCEDURE IF EXISTS get_contact_count;
+	DELIMITER //
+	CREATE PROCEDURE get_contact_count()
+	BEGIN
+		SELECT cb.id, COUNT(c.id) AS total FROM contact_books cb LEFT JOIN contacts c ON c.contact_book_id=cb.id GROUP BY cb.id;
+	END
+	//
+	DELIMITER ;
+
+This will return a row for each group and the sum of contacts, report-like. There's no entity to map to this report so either we create one (a waste) or we use the scalar mapping technique. Create and route your final action with this code:
+
+	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+	$rsm->addScalarResult('id', 'book_id')
+		->addScalarResult('total', 'contacts_total');
+
+	$qs="CALL get_contact_count()";
+	$result=$this->get('doctrine')->getManager()
+		->createNativeQuery($qs, $rsm)
+		->getResult();
+
+	$reduce=function($carry, array $item) {
+		$carry.="Book with id ".$item['book_id'].' has '.$item['contacts_total'].' contacts, ';
+		return $carry;
+	};
+
+	$contents=substr(array_reduce($result, $reduce, "Book report: "), 0, -2);
+	return $this->render('first-template.html.twig', ['something' => $contents]);
+
+An explanation of what it does:
+
+	- Creates a new ResultSetMapping object.
+	- This time, we declare that the result has two scalar values whose names match the columns 'id' and 'total' from the procedure and will be aliased as 'book_id' and 'contacts_total'.
+	- We execute the query with the ResultSetMapping. The $result variable now contains an array of results. Each result is an array with the keys 'book_id' and 'contacts_total'. If you don't believe me just "dump($results);" and "die();".
+	- We create a small reduce function to accomodate the results to the first-template.
+
+With this, you can call any kind of procedure that returns rows and use the data as you see fit while still retaining the ability to use Doctrine (honestly, in this example Doctrine is completely useless anyway). Of course, I forgot to mention that you can put all the ResultSetMapping and native query code into any repository of any entity and have clear, defined and structured code as a result. I leave that as an exercise to you (actually, it boils down to cut and paste the code and return something from the repository method).
+
+## PL/SQL and return statements.
+
+//TODO: What happens when we use "return" how do we retrieve that? 
+//TODO: Hint, in SQL SET result=procedure_call() and then SELECT result. There's no other way. I've done this before.
+
+## Exceptions in procedures.
+
+//TODO: Try and cover that too. Should be easy enough.
+
+## In and out parameters.
+
+//TODO: This section should cover in and out parameters for database procedures.
+
+## Getting closer to PDO.
+
+//GETTING CLOSER TO PDO. IMPLEMENTS THE PDO INTERFACE.
+
+	$conn = $this->get('database_connection');
+	$data = $conn->fetchAll('CALL contact_book_by_quantity(1)');
+	dump($data);
+
+//HOWEVER, IF YOU WANT TO GET CLOSE TO PDO YOU WILL SKIP THAT AND GO DIRECTLY TO THE SOURCE.
+
+	//THIS IS AS CLOSE AS YOU GET TO PDO.
+	$wr=$this->get('database_connection')->getWrappedConnection();
 
 ## Creating custom services
 

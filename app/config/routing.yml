@@ -45,3 +45,7 @@ relationships-test-procedure-full:
    defaults: {_controller: AppBundle:Tests:relationshipTestsProcedureFull, quantity:0}
    requirements:
      quantity: '[0-9]+'
+
+procedure-scalar:
+   path: tests/procedure-scalar
+   defaults: {_controller: AppBundle:Tests:procedureScalar}
