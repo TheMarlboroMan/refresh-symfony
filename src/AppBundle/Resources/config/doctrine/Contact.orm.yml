@@ -1,0 +1,28 @@
+AppBundle\Entity\Contact:
+   type: entity
+
+   table: contacts
+   id:
+      id:
+         type: integer
+         generator: {strategy: AUTO}
+   fields:
+      name:
+         type: string
+         length: 50
+         column: name
+      phone:
+         type: string
+         length: 20
+         column: phone
+      email:
+         type: string
+         length: 100
+         column: email
+   manyToOne:
+      book:
+         targetEntity: ContactBook
+         inversedBy: contacts
+         joinColumn:
+            name: contact_book_id
+            referencedColumnName: id

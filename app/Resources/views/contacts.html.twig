@@ -1,0 +1,17 @@
+{%extends 'master.html.twig'%}
+
+{%block title%}
+Our contact books with more contacts than {{quantity}} contact(s) in them
+{%endblock%}
+
+{%block body%}
+
+		<h2>Contact books:</h2>
+
+		{%for b in books%}
+
+			{{include('contact-book.html.twig', { 'book': b }, with_context=false) }}
+
+		{%endfor%}
+
+{%endblock%}

@@ -1,0 +1,17 @@
+AppBundle\Entity\ContactBook:
+   type: entity
+   repositoryClass: AppBundle\Repository\ContactBookRepository
+   table: contact_books
+   id:
+      id:
+         type: integer
+         generator: {strategy: AUTO}
+   fields:
+      name:
+         type: string
+         length: 50
+         column: name
+   oneToMany:
+      contacts:
+        targetEntity: Contact
+        mappedBy: book

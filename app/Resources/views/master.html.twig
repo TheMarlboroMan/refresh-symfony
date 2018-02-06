@@ -18,9 +18,10 @@
 				<h1>Logo of our site!</h1>
 			</div>
 
+			<div class="row">
+
 	{% block body %}
 
-			<div class="row">
 				<div class="col-md-3">
 					<div class="row">
 					This is the leftmost part.
@@ -31,8 +32,10 @@
 					This is the rightmost part.
 					</div>
 				</div>
-			</div>
+			
 	{% endblock %}
+
+			</div>
 
 			<div class="row">
 				<p>This would be the footer of the site copyright {{"now"|date("Y")}}.</p>

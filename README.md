@@ -342,7 +342,7 @@ And check with your database.
 
 We are going to add a custom repository. For that, we will first create a new Entity so we don't have to touch our previous examples. This entity will be a "person", with name and surname. Follow these steps:
 
-	- Create the mapping file with the id, name and surname fields.
+	- Create the mapping file with the id, name and surname fields. 
 	- Run "php app/console doctrine:schema:validate". It will tell you that there's no Person entity.
 	- Run "php app/console doctrine:generate:entities AppBundle:Person --path src. "people" is the name of the table in the mapping file. 
 	- Run "php app/console doctrine:schema:validate". It will tell you that there's no sync with the database (there's no people table).
@@ -408,11 +408,112 @@ One thing of note: using custom repositories does not disable the "built in" fin
 
 ### Relationships
 
-//TODO. add appointment with people, as an example.
+Entities can be related to one another taking advantage of foreign keys in your database. To demonstrate that we are going to create two new enties and relate them. Our two entities will be a contact book and a contact. A contact book has a name and many contacts and a contact has a name, a phone number, an email and belongs to a single contact book. 
+
+Start by creating the mapping files and entities of the Contact:
+
+	- Touch touch src/AppBundle/Resources/config/doctrine/Contact.orm.yml
+	- Create the mapping as you would usually do, adding the id, name, phone and email.
+	- Because a many contacts are in a single contact book, this is a "manyToOne" relationship. This must be mapped in the YAML as follows, having the "manyToOne" key in the same level as "fields" or "type".
+
+	manyToOne:
+	  book:
+	    targetEntity: ContactBook
+	    inversedBy: contacts
+	    joinColumn:
+	      name: contact_book_id
+	      referencedColumnName: id
+
+	- It is easily explained: we want a property named "book", which will be of the type ContactBook (in ContactBook there will be an inverse "contacts", with a list of Contact) and joined by the local column "contact_book_id" to the id column of the ContactBook entity table.
+	- As usual, run "php app/console doctrine:schema:validate" and it will tell you that there is no contact entity.
+	- Try to run "php app/console doctrine:generate:entities AppBundle:Contact --path src"... It will create the entity even when the ContactBook entity does not exist.
+
+Let us continue by creating the mapping files and entities of the ContactBook:
+
+	- touch src/AppBundle/Resources/config/doctrine/ContactBook.orm.yml
+	- Create the mapping as you would usually do, adding the id and the name. Add also the repositoryClass entry as we will use it later.
+	- Because a contact book is related to many contacts and we had a "manyToOne" on the other side, use "oneToMany" here:
+
+	   oneToMany:
+	      contacts:
+		targetEntity: Contact
+		mappedBy: book
+	
+	- Again, that's easily explained. "contacts" is the "inversedBy" declared before. It will be a list of entities of the type Contact. "book" is the name of the property in the Contact entity that represents the Contact book.
+	- Validate the schema and note the errors.
+	- Run "php app/console doctrine:generate:entities AppBundle:ContactBook --path src"
+
+Now validate the schema again. The tables do not exist, so do the schema update as in the previous sections. Take a moment to insert data into the new tables but bear in mind that you must create contact books first and contacts second, as there's a foreign key dependant on contacts. Also, if you feel adventurous, try to delete a contact book once contacts are created and rejoice in the glory of foreign key constraints. There are "cascade" entries you can use in Doctrine to do this, if you feel inclined to do so.
+
+Picking up where we left off, create the repository file for the ContactBook entity as you did before. This time we will not use DQL but the query builder (if you thought DQL was redundant, this will give you a stroke):
+
+	- touch src/AppBundle/Repository/ContactBookRepository.php
+	- Create the class following the instructions outlined in the "custom repositories" section. 
+	- Create the method that returns books with more than N contacts within. The code follows:
+
+	public function findByContactsGreaterThan($number) {
+
+		$qb=$this->getEntityManager()->createQueryBuilder();
+		return $qb->select('cb')
+			->from('AppBundle:ContactBook', 'cb')
+			->join('cb.contacts', 'c')
+			->groupBy('cb.id')
+			->having($qb->expr()->gt($qb->expr()->count('c.id'), $number))
+			->getQuery()
+			->getResult();
+	}
+
+If you thought DQL was a layer of abstraction too many... What about that?. How is that any more readable than "SELECT cb.* FROM contact_books cb LEFT JOIN contacts c ON cb.id=c.contact_book_id GROUP BY cb.id HAVING COUNT(cb.id) > 1"? Fortunately, nobody is forcing anybody to do that but well, if having your SQL statements in PHP can be considered breaking encapsulation I don't know what the code above can be considered to be. End of rant.
+
+We are going to check our results, for that we will create a new route and a new controller. This time we'll add the parameter "quantity" in the route with a default value of 0, signifying the $number parameter in findByContactsGreaterThan:
+
+	yournamehere:
+	   path: yourpathhere/{quantity}
+	   defaults: {_controller: AppBundle:Tests:yourControllerHere, quantity:0}
+	   requirements:
+	     quantity: '[0-9]+'
+
+Now, before pairing that to a controller we will create a new twig template. We will use it to further enhance the experience of showing data. The file in the repository is called "contacts.html.twig" and has a companion "contact-book.html.twig". Take a look at them in order and reflect upon the things we are doing here:
+
+	- We have a contacts.html.twig template that looks a lot like the other ones, extending fom master and whatnot.
+	- We do not declare the stylesheets block, so the one in master is used.
+	- There's something new, a for loop in which we iterate all books.
+	- Inside the loop there is an "include" function to include the "contacts" template and have the variable "book" of that template correspond to the current book (the with_context=false part is optional, it means that other variables won't be accesible in the included template... It's a matter of personal taste).
+	- Inside the contact-book template we are using b (as in book) and (c as in contact) to refer to book and contact objects, calling the methods as we need (we could actually go b.name and twig would infer b.getName() for us).
+	- Most importantly, we can use b.getContacts() and get an array of contacts, as it pertains to the mapping we did!.
 
 ### Database Layer interaction.
 
-//TODO.
+If you wish to keep everything where it belongs, perhaps you'd like to skip the DQL and query building and directly code stored procedures into your database. For this example we will reconstruct the previous controllers using stored procedures and trying to avoid Doctrine queries as much as possible.
+
+First, create a procedure in your database. The following code creates the procedure contact_book_by_quantity, which is meant to replace the code in the contact_book repository:
+
+	DROP PROCEDURE IF EXISTS contact_book_by_quantity;
+	DELIMITER //
+	CREATE PROCEDURE contact_book_by_quantity(IN _q INTEGER)
+	BEGIN
+		SELECT cb.* FROM contact_books cb LEFT JOIN contacts c ON cb.id=c.contact_book_id GROUP BY cb.id HAVING COUNT(cb.id) > _q;
+	END//
+	DELIMITER ;
+
+
+
+
+DROP PROCEDURE IF EXISTS contact_book_by_quantity_full;
+DELIMITER //
+CREATE PROCEDURE contact_book_by_quantity_full(IN _q INTEGER)
+BEGIN
+SELECT 
+cb.id AS cb_id, cb.name AS cb_name,
+c.id AS c_id, c.name AS c_name, c.phone AS c_phone, c.email AS c_email
+FROM contact_books cb 
+JOIN contacts c ON cb.id=c.contact_book_id 
+WHERE cb.id IN (SELECT cb.id FROM contact_books cb LEFT JOIN contacts c ON cb.id=c.contact_book_id GROUP BY cb.id HAVING COUNT(c.id) > _q);
+END
+//
+DELIMITER ;
+
+
 
 ## Creating custom services
 

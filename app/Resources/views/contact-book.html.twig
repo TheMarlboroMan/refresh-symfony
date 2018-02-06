@@ -1,0 +1,24 @@
+<table class="table">
+	<thead>
+		<th>
+			<th colspan="3">{{book.getName()}}</th>
+		</th>
+	</thead>
+	<tbody>
+		<tr>
+			<th>Name</th>
+			<th>Phone</th>
+			<th>Email</th>
+		</tr>
+		{%for c in book.getContacts()%}
+		<tr>
+			<td>{{c.getName()}}</td>
+			<td>{{c.getPhone()}}</td>
+			<td>{{c.getEmail()}}</td>
+		</tr>
+		{%endfor%}
+	</tbody>
+	<tfoot></tfoot>
+</table>
+
+

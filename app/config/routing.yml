@@ -27,3 +27,21 @@ repository-person-test:
    defaults: {_controller:AppBundle:Tests:usePersonRepository}
    requirements:
      paramname: '[a-zA-z]+'
+
+relationships-test:
+   path: tests/relationships/{quantity}
+   defaults: {_controller: AppBundle:Tests:relationshipTests, quantity:0}
+   requirements:
+     quantity: '[0-9]+'
+
+relationships-test-procedure:
+   path: tests/relationships-procedure/{quantity}
+   defaults: {_controller: AppBundle:Tests:relationshipTestsProcedure, quantity:0}
+   requirements:
+     quantity: '[0-9]+'
+
+relationships-test-procedure-full:
+   path: tests/relationships-procedure-full/{quantity}
+   defaults: {_controller: AppBundle:Tests:relationshipTestsProcedureFull, quantity:0}
+   requirements:
+     quantity: '[0-9]+'
