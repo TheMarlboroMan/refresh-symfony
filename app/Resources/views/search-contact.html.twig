@@ -1,0 +1,12 @@
+{%extends 'master.html.twig'%}
+
+{%block title%}
+Searching contacts with the id {{id}}
+{%endblock%}
+
+{%block body%}
+
+		<h2>Search results for contact with id {{id}}:</h2>
+		<p>With the id {{id}} you can find {%if result is null%}nobody{%else%}{{result['contact_name']}}{%endif%}.
+
+{%endblock%}

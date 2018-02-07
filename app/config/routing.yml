@@ -49,3 +49,21 @@ relationships-test-procedure-full:
 procedure-scalar:
    path: tests/procedure-scalar
    defaults: {_controller: AppBundle:Tests:procedureScalar}
+
+database-function:
+   path: tests/database-function
+   defaults: {_controller: AppBundle:Tests:databaseFunction}
+
+procedure-maybe-null-ugly:
+   path: tests/procedure-maybe-null-ugly/{id}
+   defaults: {_controller: AppBundle:Tests:procedureMaybeNullUgly, id:0}
+   requirements:
+    id: '[0-9]+'
+
+procedure-maybe-null-ok:
+   path: tests/procedure-maybe-null-ok/{id}
+   defaults: {_controller: AppBundle:Tests:procedureMaybeNullOk, id:0}
+   requirements:
+    id: '[0-9]+'
+
+

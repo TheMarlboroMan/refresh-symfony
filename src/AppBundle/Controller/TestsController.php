@@ -28,9 +28,9 @@ class TestsController extends Controller {
 	public function relationshipTestsProcedureAction($quantity) {
 
 		$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
-		$rsm->addEntityResult('AppBundle\Entity\ContactBook', 'b');
-		$rsm->addFieldResult('b', 'id', 'id');
-		$rsm->addFieldResult('b', 'name', 'name');
+		$rsm->addEntityResult('AppBundle\Entity\ContactBook', 'b')
+			->addFieldResult('b', 'id', 'id')
+			->addFieldResult('b', 'name', 'name');
 
 		$qs="CALL contact_book_by_quantity(?)";
 		$books=$this->get('doctrine')->getManager()
@@ -44,16 +44,16 @@ class TestsController extends Controller {
 	public function relationshipTestsProcedureFullAction($quantity) {
 
 		$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
-		$rsm->addEntityResult('AppBundle:ContactBook', 'cb');
-		$rsm->addFieldResult('cb', 'cb_id', 'id');
-		$rsm->addFieldResult('cb', 'cb_name', 'name');
-		$rsm->addJoinedEntityResult('AppBundle:Contact', 'c', 'cb', 'contacts');
-		$rsm->addFieldResult('c', 'c_id', 'id');
-		$rsm->addFieldResult('c', 'c_name', 'name');
-		$rsm->addFieldResult('c', 'c_phone', 'phone');
-		$rsm->addFieldResult('c', 'c_email', 'email');
+		$rsm->addEntityResult('AppBundle:ContactBook', 'cb')
+			->addFieldResult('cb', 'cb_id', 'id')
+			->addFieldResult('cb', 'cb_name', 'name')
+			->addJoinedEntityResult('AppBundle:Contact', 'c', 'cb', 'contacts')
+			->addFieldResult('c', 'c_id', 'id')
+			->addFieldResult('c', 'c_name', 'name')
+			->addFieldResult('c', 'c_phone', 'phone')
+			->addFieldResult('c', 'c_email', 'email');
 
-		$qs="CALL contact_book_by_quantity_full(?)";
+		$qs="CALL contact_book_by_quantity_full(?);";
 		$books=$this->get('doctrine')->getManager()
 			->createNativeQuery($qs, $rsm)
 			->setParameter(1, $quantity)
@@ -68,7 +68,7 @@ class TestsController extends Controller {
 		$rsm->addScalarResult('id', 'book_id')
 			->addScalarResult('total', 'contacts_total');
 
-		$qs="CALL get_contact_count()";
+		$qs="CALL get_contact_count();";
 		$result=$this->get('doctrine')->getManager()
 			->createNativeQuery($qs, $rsm)
 			->getResult();
@@ -80,5 +80,64 @@ class TestsController extends Controller {
 
 		$contents=substr(array_reduce($result, $reduce, "Book report: "), 0, -2);
 		return $this->render('first-template.html.twig', ['something' => $contents]);
+	}
+
+	public function databaseFunctionAction() {
+
+		$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+		$rsm->addScalarResult('total_count', 'this_does_not_really_matter');
+
+		$qs="SELECT get_total_contact_count() AS total_count FROM DUAL";
+		$result=$this->get('doctrine')->getManager()
+			->createNativeQuery($qs, $rsm)
+			->getSingleScalarResult();
+
+		return $this->render('first-template.html.twig', ['something' => 'There are '.$result.' contact(s) in the whole database']);
+	}
+
+	public function procedureMaybeNullUglyAction($id) {
+
+			$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+		$rsm->addScalarResult('name', 'contact_name');
+
+		$qs="CALL get_contact_info_by_id(?);";
+		$result=$this->get('doctrine')->getManager()
+			->createNativeQuery($qs, $rsm)
+			->setParameter(1, $id)
+			->getResult();
+
+		$result_name=count($result) ? $result[0]['contact_name']: 'nobody';
+		return $this->render('first-template.html.twig', ['something' => 'With the id '.$id.' you can find '.$result_name]);
+	}
+
+	public function procedureMaybeNullLessUglyAction($id) {
+
+		$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+		$rsm->addScalarResult('name', 'contact_name');
+		//No need to map all values if we aren't going to use them.
+
+		$qs="CALL get_contact_info_by_id(?);";
+		$result=$this->get('doctrine')->getManager()
+			->createNativeQuery($qs, $rsm)
+			->setParameter(1, $id)
+			->getOneOrNullResult();
+
+		$result_name=$result ? $result['contact_name']: 'nobody';
+		return $this->render('first-template.html.twig', ['something' => 'With the id '.$id.' you can find '.$result_name]);
+	}
+
+	public function procedureMaybeNullOkAction($id) {
+
+		$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+		$rsm->addScalarResult('name', 'contact_name');
+		//No need to map all values if we aren't going to use them.
+
+		$qs="CALL get_contact_info_by_id(?);";
+		$result=$this->get('doctrine')->getManager()
+			->createNativeQuery($qs, $rsm)
+			->setParameter(1, $id)
+			->getOneOrNullResult();
+
+		return $this->render('search-contact.html.twig', ['result' => $result, 'id' => $id]);
 	}
 }

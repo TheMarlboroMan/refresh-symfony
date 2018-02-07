@@ -503,9 +503,9 @@ If you have been following so far, we have seen no way of issuing a SQL command 
 To first approach it, create a new controller and action (don't forget to map it in routing.yml!), perhaps a clone of the ones used in the "Relationships" section. Once inside, use this code for the body of the action:
 
 	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
-	$rsm->addEntityResult('AppBundle:ContactBook', 'b');
-	$rsm->addFieldResult('b', 'id', 'id');
-	$rsm->addFieldResult('b', 'name', 'name');
+	$rsm->addEntityResult('AppBundle:ContactBook', 'b')
+		->addFieldResult('b', 'id', 'id')
+		->addFieldResult('b', 'name', 'name');
 
 	$qs="CALL contact_book_by_quantity(?)";
 	$books=$this->get('doctrine')->getManager()
@@ -520,6 +520,7 @@ A dissection:
 	- First we create an empty ResultSetMapping object. 
 		- We tell it that our query will contain an entity (AppBundle:ContactBook, or AppBundle\Entity\ContactBook for long, with the alias "b").
 		- We tell it that there will be two result fields for the entity aliased as "b": the column "id" will be mapped to the field "id" and so on.
+		- The interface is fluent: every call returns a reference to the $rsm object, so we can keep chaining them.
 	- Next we create the query string. This query string will not be touched by Doctrine, so make sure it is foolproof and try to use parameters to avoid SQL injections.
 	- We used "getManager" instead of "getEntityManager", which is due for deprecation.
 	- Finally, we ask the entity manager to create the native query, assign the parameter and get its result.
@@ -543,13 +544,13 @@ Next create a new action and route it. It looks almost like the one before:
 
 	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
 	$rsm->addEntityResult('AppBundle:ContactBook', 'cb');
-	$rsm->addFieldResult('cb', 'cb_id', 'id');
-	$rsm->addFieldResult('cb', 'cb_name', 'name');
-	$rsm->addJoinedEntityResult('AppBundle:Contact', 'c', 'cb', 'contacts');
-	$rsm->addFieldResult('c', 'c_id', 'id');
-	$rsm->addFieldResult('c', 'c_name', 'name');
-	$rsm->addFieldResult('c', 'c_phone', 'phone');
-	$rsm->addFieldResult('c', 'c_email', 'email');
+		->addFieldResult('cb', 'cb_id', 'id')
+		->addFieldResult('cb', 'cb_name', 'name')
+		->addJoinedEntityResult('AppBundle:Contact', 'c', 'cb', 'contacts')
+		->addFieldResult('c', 'c_id', 'id')
+		->addFieldResult('c', 'c_name', 'name')
+		->addFieldResult('c', 'c_phone', 'phone')
+		->addFieldResult('c', 'c_email', 'email');
 
 	$qs="CALL contact_book_by_quantity_full(?)";
 	$books=$this->get('doctrine')->getManager()
@@ -606,10 +607,110 @@ An explanation of what it does:
 
 With this, you can call any kind of procedure that returns rows and use the data as you see fit while still retaining the ability to use Doctrine (honestly, in this example Doctrine is completely useless anyway). Of course, I forgot to mention that you can put all the ResultSetMapping and native query code into any repository of any entity and have clear, defined and structured code as a result. I leave that as an exercise to you (actually, it boils down to cut and paste the code and return something from the repository method).
 
-## PL/SQL and return statements.
+## Single results and calling functions.
 
-//TODO: What happens when we use "return" how do we retrieve that? 
-//TODO: Hint, in SQL SET result=procedure_call() and then SELECT result. There's no other way. I've done this before.
+You may find yourself in a situation when you need to retrieve a value from a database function instead of from a procedure. Albeit rare, it is something that can happen and you won't be able to solve with a bit of extra work. Assume the following function:
+
+	DROP FUNCTION IF EXISTS get_total_contact_count;
+	DELIMITER //
+	CREATE FUNCTION get_total_contact_count()
+	RETURNS INTEGER
+	BEGIN
+		DECLARE total INTEGER UNSIGNED DEFAULT 0;
+		SELECT COUNT(id) INTO total FROM contacts;
+		RETURN total;
+	END
+	//	
+	DELIMITER ;
+
+Using the previous techniques will not work:
+
+	- To begin with, you cannot issue a "CALL get_total_contact_count()" to your database. Go ahead and try it. CALL is reserved for procedures.
+	- Even if you could, there is no mapping to speak of. What's the name of the returned field?. Is there even a returned field?.
+
+The solution is actually using an old trick. Think about how you call functions in your database and what can you do with them:
+
+	- You SELECT your functions.
+	- You can SELECT them into an alias or local variable.
+
+To test it, create and route a new action and use this code:
+
+	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+	$rsm->addScalarResult('total_count', 'this_does_not_really_matter');
+
+	$qs="SELECT get_total_contact_count() AS total_count FROM DUAL";
+	$result=$this->get('doctrine')->getManager()
+		->createNativeQuery($qs, $rsm)
+		->getSingleScalarResult();
+
+	return $this->render('first-template.html.twig', ['something' => 'There are '.$result.' contact(s) in the whole database']);
+
+Notice that:
+
+	- We used getSingleScalarResult() because we know there is a single value being returned. Previously we have been using getResult() which in this case would have resulted in an array that looks like [0 => ['total_count' => #]], which would have forced us to write 'There are '.$result[0]['total_count'].' contact(s) in the whole database'.
+	- We still need to add a scalar result to the mapping, even if the chosen alias does not appear anywhere else.
+
+What about functions that may or may not return a value?. Use the following code to create a procedure that may not return anything:
+
+	DROP PROCEDURE IF EXISTS get_contact_info_by_id;
+	DELIMITER //
+	CREATE PROCEDURE get_contact_info_by_id(_id INTEGER)
+	BEGIN
+		SELECT name, email, phone FROM contacts WHERE id=_id;
+	END
+	//
+	DELIMITER ;
+
+Try the function in your database console. Depending on your input, it will return a row with the stated values or will return nothing. Because of that, you need code like:
+
+	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+	$rsm->addScalarResult('name', 'contact_name');
+	//We are using only the name: no reason to add more results...
+
+	$qs="CALL get_contact_info_by_id(?);";
+	$result=$this->get('doctrine')->getManager()
+		->createNativeQuery($qs, $rsm)
+		->setParameter(1, $id)
+		->getResult();
+
+	$result_name=count($result) ? $result[0]['contact_name'] : 'nobody';
+	return $this->render('first-template.html.twig', ['something' => 'With the id '.$id.' you can find '.$result_name]);
+
+In other words, you need to manually check the number of rows in your result and then access the fields you need: that's actually a few points where you could mess up (field names, remembering $result is an array of arrays, remembering to check the length of $result...) to achieve something so simple. The NativeQuery class of Doctrine gives us an slightly easier alternative:
+
+	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+	$rsm->addScalarResult('name', 'contact_name');
+
+	$qs="CALL get_contact_info_by_id(?);";
+	$result=$this->get('doctrine')->getManager()
+		->createNativeQuery($qs, $rsm)
+		->setParameter(1, $id)
+		->getOneOrNullResult();
+
+	$result_name=$result ? $result['contact_name']: 'nobody';
+	return $this->render('first-template.html.twig', ['something' => 'With the id '.$id.' you can find '.$result_name]);
+
+We use the getOneOrNullResult() so $result is null if nothing is found or just a single row if everything went ok. We still need to check, but no count and no direct index accessing. Still, it could be a bit better. What about washing your hands and dumping that work in the template developer?.
+
+	- Create a new template file (touch app/Resources/views/search-contact.html.twig). Take a look at the template and notice how we compose everything in twig.
+		- We include the id variable too, just for fun.
+		- We use "is null" to check what we need to ouput.
+		- All presentation logic is in the template now.
+	- Create the controller and route. Use this code:
+
+	$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+	$rsm->addScalarResult('name', 'contact_name');
+	//No need to map all values if we aren't going to use them.
+
+	$qs="CALL get_contact_info_by_id(?);";
+	$result=$this->get('doctrine')->getManager()
+		->createNativeQuery($qs, $rsm)
+		->setParameter(1, $id)
+		->getOneOrNullResult();
+
+	return $this->render('search-contact.html.twig', ['result' => $result, 'id' => $id]);
+
+That code is actually very clear and concerned only with getting the information. All transformations and checks are done in the template where information will be displayed.
 
 ## Exceptions in procedures.
 
