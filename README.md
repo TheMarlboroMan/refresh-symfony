@@ -714,7 +714,70 @@ That code is actually very clear and concerned only with getting the information
 
 ## Exceptions in procedures.
 
-//TODO: Try and cover that too. Should be easy enough.
+A quick note: if you are into following the spirit of keeping your database concerns inside your database perhaps you'd like to know how procedure exceptions are reported when they are thrown within the context of a NativeQuery call. This code will create a function that will return true when its parameter is odd and throw and exception when it is even.
+
+	DROP FUNCTION IF EXISTS odd_even;
+	DELIMITER //
+	CREATE FUNCTION odd_even(_value INTEGER)
+	RETURNS BOOLEAN
+	BEGIN
+		IF NOT MOD(_value, 2) THEN SIGNAL SQLSTATE '45000';
+		END IF;
+	
+		RETURN TRUE;
+	END
+	//
+	DELIMITER ;
+
+In case you are wondering, this comes straight from the MySQL docs: 'To signal a generic SQLSTATE value, use '45000', which means "unhandled user-defined exception."'. To check how this exception propagates to our Symfony code, create a controller, an action and a route in which a number is passed as a parameter (you can find examples on how to do that in earlier chapters). Use this as the code for your action:
+
+	public function yourActionNameGoesHereAction($value) {
+
+		$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+		$rsm->addScalarResult('result', 'result');
+
+		$qs="SELECT odd_even(?) AS result FROM DUAL";
+
+		$value_type=null;
+
+		try {
+			$result=$this->get('doctrine')->getManager()
+				->createNativeQuery($qs, $rsm)
+				->setParameter(1, $value)
+				->getSingleScalarResult();
+			$value_type='odd';
+		}
+		catch(\Doctrine\DBAL\Exception\DriverException $e) {
+			$value_type='even';
+		}
+
+		return $this->render('first-template.html.twig', ['something' => $value.' is '.$value_type]);
+	}
+
+The code itself does nothing useful, but notice how we wrap the database call in a try-catch block. The exception flows into the PHP code and is caught as such (particularly into a \Doctrine\DBAL\Exception\DriverException, but you can get it with \Exception too if you trust your code enough). Think for a minute on how convenient that is. 
+
+Of course, that would work the same in a stored procedure:
+
+	DROP PROCEDURE IF EXISTS create_contact;
+	DELIMITER //
+	CREATE PROCEDURE create_contact(IN _name VARCHAR(50) , IN _phone VARCHAR(20), IN _email VARCHAR(100))
+	BEGIN
+		IF _name='Mark' THEN SIGNAL SQLSTATE '45000';
+		END IF;
+
+		INSERT INTO contacts(name, phone, email) VALUES (_name, _phone, _email);
+		SELECT LAST_INSERT_ID() AS result;
+	END
+	//
+	DELIMITER ;
+
+As an excercise to you, create a route, controller and action for this procedure that receives the information (name, phone, email) in three separate parameters separated by asterisks in the URL. Handle the possible exception in your controller and do all logic in a new template (show the id for the newly created contact as returned in the procedure or show an error message because the contact cannot be called "Mark"). You can check yourself with the route named "procedure-database-exception".
+
+A few things of note:
+
+	- Pay close attention to how we alias the LAST_INSERT_ID() function in the procedure. 
+	- Pay close attention to how we map this alias to an array key with the ResultSetMapping object (if we didn't do that there would be no results!).
+	- Have you already noticed the problem with that procedure?. That's right: contacts are not assigned to any contact book.
 
 ## In and out parameters.
 
@@ -732,6 +795,8 @@ That code is actually very clear and concerned only with getting the information
 
 	//THIS IS AS CLOSE AS YOU GET TO PDO.
 	$wr=$this->get('database_connection')->getWrappedConnection();
+
+//EXCEPTIONS AGAIN.
 
 ## Creating custom services
 

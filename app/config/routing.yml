@@ -66,4 +66,12 @@ procedure-maybe-null-ok:
    requirements:
     id: '[0-9]+'
 
+function-database-exception:
+   path: tests/function-database-exception/{value}
+   defaults: {_controller: AppBundle:Tests:functionDatabaseException}
+   requirements:
+    id: '[0-9]+'
 
+procedure-database-exception:
+   path: tests/procedure-database-exception/{name}*{phone}*{email}
+   defaults: {_controller: AppBundle:Tests:procedureDatabaseException}

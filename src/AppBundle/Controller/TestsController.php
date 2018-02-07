@@ -140,4 +140,50 @@ class TestsController extends Controller {
 
 		return $this->render('search-contact.html.twig', ['result' => $result, 'id' => $id]);
 	}
+
+	public function functionDatabaseExceptionAction($value) {
+
+		$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+		$rsm->addScalarResult('result', 'result');
+
+		$qs="SELECT odd_even(?) AS result FROM DUAL";
+
+		$value_type=null;
+
+		try {
+			$result=$this->get('doctrine')->getManager()
+				->createNativeQuery($qs, $rsm)
+				->setParameter(1, $value)
+				->getSingleScalarResult();
+			$value_type='odd';
+		}
+		catch(\Doctrine\DBAL\Exception\DriverException $e) {
+			$value_type='even';
+		}
+
+		return $this->render('first-template.html.twig', ['something' => $value.' is '.$value_type]);
+	}
+
+	public function procedureDatabaseExceptionAction($name, $phone, $email) {
+
+		$rsm=new \Doctrine\ORM\Query\ResultSetMapping;
+		$rsm->addScalarResult('result', 'result');
+
+		$result=null;
+
+		try {
+			$qs="CALL create_contact(?,?,?);";
+			$result=$this->get('doctrine')->getManager()
+				->createNativeQuery($qs, $rsm)
+				->setParameter(1, $name)
+				->setParameter(2, $phone)
+				->setParameter(3, $email)
+				->getSingleScalarResult();
+		}
+		catch(\Doctrine\DBAL\Exception\DriverException $e) {
+			//We won't do a thing here...
+		}
+
+		return $this->render('create-user.html.twig', ['id' => $result]);
+	}
 }

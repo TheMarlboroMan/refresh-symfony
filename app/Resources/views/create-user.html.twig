@@ -1,0 +1,19 @@
+{%extends 'master.html.twig'%}
+
+{%block title%}
+Creating a new contact...
+{%endblock%}
+
+{%block body%}
+
+		<h2>Results for creating a new contact:</h2>
+
+		<p>
+		{%if id is null%}
+		The user cannot be called Mark.
+		{%else%}
+		Your new contact has the id {{id}}.
+		{%endif%}
+		</p>
+
+{%endblock%}
