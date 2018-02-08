@@ -779,12 +779,6 @@ A few things of note:
 	- Pay close attention to how we map this alias to an array key with the ResultSetMapping object (if we didn't do that there would be no results!).
 	- Have you already noticed the problem with that procedure?. That's right: contacts are not assigned to any contact book.
 
-### Transactions
-
-//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-
 ### Getting closer to PDO.
 
 During the last chapter we have been twisting the ORM Doctrine components to get closer to the database using NativeQuery objects. These techniques still bind us to ResultSetMapping, which may be undesirable in some contexts. In this chapter we will get as close to PDO as we can within the limits imposed by Doctrine, which is pretty close.
@@ -812,11 +806,12 @@ If we got Doctrine\DBAL\Connection before, the wrapped connection implements the
 	- quote: directly calls PDO::quote. Even its default parameter is the same as PDO (thus, this method does nothing new and could be disposed of).
 	- lastInsertId: same as above. As disposable as it too.
 
-So... you can just use it as if it were your own PDO class, minding that statements returned by calls to prepare() and query() will be of the Doctrine type Doctrine\DBAL\Driver\PDOStatement. If you are wondering about the differences between that class and PDOStatement here they are:
+So... you can just use it as if it were your own PDO class, minding that statements returned by calls to prepare() and query() will be of the Doctrine type Doctrine\DBAL\Driver\PDOStatement. If you are wondering about the differences between that class and PDOStatement I won't bore you with them: Doctrine\DBAL\Driver\PDOStatement extends PDOStatement and the methods it overrides wrap everything in try-catch blocks. With that in mind, take a look at the action mapped by the route "dbal-2" and notice how:
 
-//TODO: Check differences.
-
-//TODO: CREATE AN EXAMPLE!!!
+	- Doctrine and symfony took care of connecting to the database.
+	- You issued the queries through the DBAL interface.
+	- Queries are not caught by the symfony debug bar.
+	- You found again the pesky LIKE syntax for query parameters: you need to add the % wildcard in the parameter and not in the query.
 
 ### Doctrineless symfony.
 
@@ -828,6 +823,7 @@ These are a few things I purposedly left behind and some thoughts you may be int
 
 	- Yes, there is a way to map the IN/OUT/INOUT parameters of your database procedures to PHP variables. No, I am not going to put any of that here. Honestly, when was the last time you were justified on doing that?
 	- Remember that you can (and should) put your ResultSetMapping objects within their respective entity repositories. If you are abusing a particular method of a repository you may wish to "cache" that ResultSetMapping object through a service (we'll see them in the next chapter) that returns it or through static private properties of the repository (I actually prefer the former, as the latter seems a bit un-symfony-ish.
+	- We didn't touch a bit about transactions. If you want some information, take a look at the action mapped to the route "dbal-transactions".
 	- If you are using NativeQuery objects to collect scalar information (such as information for a report), please, be clean and put all mapping and queries into a service.
 	- This one is important: you don't have to use Doctrine if you don't want to! (but you should at least try to learn it, it comes bundled with symfony for a reason).
 	- If your team and project allows it, consider separating database logic from application login using stored procedures in your databse. Of course, persisting entities is fast and easy through PHP code (so is deleting or updating entities) but the fact of the matter is that to achieve true "separation of concerns" (something we all have heard or read of) you must separate your platform flow from database specific code. This also allows you to work with database specialists and focus on coding your application logic (is it me or are the lines blurry everywhere?).

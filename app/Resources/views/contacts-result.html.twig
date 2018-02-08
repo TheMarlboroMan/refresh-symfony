@@ -1,0 +1,23 @@
+{%extends 'master.html.twig'%}
+
+{%block title%}
+Results of the search
+{%endblock%}
+
+{%block body%}
+
+		<h2>Searching by name like "{{name}}" or phone like "{{phone}}":</h2>
+
+		{%if results is null%}
+			<b>There was an error while processing your request.</b>
+		{%elseif results|length %}
+
+			<ul>
+			{%for row in results%}
+				<li>{{row['name']}} - {{row['phone']}} ({{row['email']}})</li>
+			{%endfor%}
+			</ul>
+		{%else%}
+			<b>There are no results for your search.</b>
+		{%endif%}
+{%endblock%}

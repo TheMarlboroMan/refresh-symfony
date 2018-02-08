@@ -81,5 +81,12 @@ dbal-1:
    defaults: {_controller: AppBundle:Dbal:dbal1}
 
 dbal-2:
-   path: dbal/2
+   path: dbal/2/{name}/{phone}
    defaults: {_controller: AppBundle:Dbal:dbal2}
+   requirements:
+    name: '[a-zA-z]+'
+    phone: '[0-9]+'
+
+dbal-transactions:
+   path: dbal/transactions
+   defaults: {_controller: AppBundle:Dbal:dbalTransactions}
