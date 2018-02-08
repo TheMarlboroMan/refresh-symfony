@@ -75,3 +75,11 @@ function-database-exception:
 procedure-database-exception:
    path: tests/procedure-database-exception/{name}*{phone}*{email}
    defaults: {_controller: AppBundle:Tests:procedureDatabaseException}
+
+dbal-1:
+   path: dbal/1
+   defaults: {_controller: AppBundle:Dbal:dbal1}
+
+dbal-2:
+   path: dbal/2
+   defaults: {_controller: AppBundle:Dbal:dbal2}

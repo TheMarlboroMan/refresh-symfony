@@ -31,7 +31,7 @@ Next it would be a good idea to check the configuration by navigating to:
 
 	localhost/refresh_symfony/web/config.php
 
-It is likely that it will complain about the cache and log directories not being readable. Fix that, either by 0777 them or, if you are a subtle person, chowning them to the daemon user in the daemon group
+It is likely that it will complain about the cache and log directories not being readable. Fix that, either by 0777 them or, if you are a subtle person, chowning them to the daemon user in the daemon group (mind you that this may give you problems down the line when you run console commands).
 
 	sudo chown daemon:daemon app/cache
 	sudo chown daemon:daemon app/logs
@@ -779,34 +779,48 @@ A few things of note:
 	- Pay close attention to how we map this alias to an array key with the ResultSetMapping object (if we didn't do that there would be no results!).
 	- Have you already noticed the problem with that procedure?. That's right: contacts are not assigned to any contact book.
 
+### Transactions
+
+//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+
 ### Getting closer to PDO.
 
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+During the last chapter we have been twisting the ORM Doctrine components to get closer to the database using NativeQuery objects. These techniques still bind us to ResultSetMapping, which may be undesirable in some contexts. In this chapter we will get as close to PDO as we can within the limits imposed by Doctrine, which is pretty close.
 
-//GETTING CLOSER TO PDO. IMPLEMENTS THE PDO INTERFACE.
+The first step is to use Doctrine DBAL (Database Abstraction Layer) Connection class (Doctrine\DBAL\Connection, to be exact), which is a service available in all controllers (that properly extend the controller class, that is). This class features methods that will allow you to work in a manner more closely resembling the PDO interface. Study the example of the route dbal-1 but pay not much mind: we can still (and will) get closer to PDO, this Connection class is just a step in the way. Note that:
 
-	$conn = $this->get('database_connection');
-	$data = $conn->fetchAll('CALL contact_book_by_quantity(1)');
-	dump($data);
+	- The Connection class is instantiated as a service ($this->get('database_connection')).
+	- It resembles PDO, with its exec, query and prepare methods.
+	- You should "prepare()" any statement that may be repeated over and over. The return value of prepare() is a Doctrine\DBAL\Statement object, which in time wraps Doctrine\DBAL\Driver\Statement, which is a wrapper for a part of PDOStatement (see a pattern there?). 
+	- You need to choose the correct method for the correct SQL command ("exec()" will not do for a SELECT clause, for example).
+	- We skipped some of its methods, like update, insert, delete, lastInsertId, exect... You can find the full public interface in the Doctrine docs.
+	- Merrily enough, the docs will tell you that query() gets no parameters (it actually uses PHP5.6 variable arguments feature).
+	- We also skipped the template related code this time. Notice that this is not symfony-like!. An action in a controller exists to render sensible code for to the clients who request it. What we did here is not sensible code by any means.
 
-//HOWEVER, IF YOU WANT TO GET CLOSE TO PDO YOU WILL SKIP THAT AND GO DIRECTLY TO THE SOURCE.
+However, if you want to get closer to PDO just skip the Connection and try to go a step further. Instead of getting the database_connection service, we will attempt to get a WrappedConnection object from it with:
 
-	//THIS IS AS CLOSE AS YOU GET TO PDO.
 	$wr=$this->get('database_connection')->getWrappedConnection();
 
-//EXCEPTIONS AGAIN.
+If we got Doctrine\DBAL\Connection before, the wrapped connection implements the interface Doctrine\DBAL\Driver\Connection and, depending on your driver (you can see those in the config.yml file) it will be an instance of this or that class. In our case we get a Doctrine\DBAL\Driver\PDOConnection (after all, we are talking PDO here) that extends the PDO class. In other words, it can behave like PDO but with more indirection levels. In total, it has a couple of methods not present in PDO (namely requiresQueryForServerVersion and getServerVersion) and overrides a few of them:
 
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
-//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+	- __construct: Sets the error reporting mode to exceptions (something you have to do manually in PDO) and the statement class to the Doctrine one (instead of the default PDOStatement).
+	- exec: Calls PDO::exec inside a try-catch block.
+	- prepare: Calls PDO::prepare inside a try-catch block.
+	- query: Wraps PDO::query with its four flavours (each with a different set of parameters) and adds a try-catch block.
+	- quote: directly calls PDO::quote. Even its default parameter is the same as PDO (thus, this method does nothing new and could be disposed of).
+	- lastInsertId: same as above. As disposable as it too.
+
+So... you can just use it as if it were your own PDO class, minding that statements returned by calls to prepare() and query() will be of the Doctrine type Doctrine\DBAL\Driver\PDOStatement. If you are wondering about the differences between that class and PDOStatement here they are:
+
+//TODO: Check differences.
+
+//TODO: CREATE AN EXAMPLE!!!
+
+### Doctrineless symfony.
+
+In the previous example we used Doctrine with only the DBAL (Database Abstraction Layer) components (without the ORM - Object Relational Mapping - parts). If you are interested in completely do away with Doctrine (maybe you are using symfony to create a REST API and your database administrator is a demigod that did procedures for absolutely everything), please, check my doctrineless-symfony repository, which will follow a format close to this one and will use pure PDO to work with database stuff.
 
 ### Last words on databases and doctrine.
 
@@ -831,3 +845,5 @@ These are a few things I purposedly left behind and some thoughts you may be int
 ## Security and users.
 
 //TODO.
+
+## Creating console commands.
