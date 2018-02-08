@@ -607,7 +607,7 @@ An explanation of what it does:
 
 With this, you can call any kind of procedure that returns rows and use the data as you see fit while still retaining the ability to use Doctrine (honestly, in this example Doctrine is completely useless anyway). Of course, I forgot to mention that you can put all the ResultSetMapping and native query code into any repository of any entity and have clear, defined and structured code as a result. I leave that as an exercise to you (actually, it boils down to cut and paste the code and return something from the repository method).
 
-## Single results and calling functions.
+### Single results and calling functions.
 
 You may find yourself in a situation when you need to retrieve a value from a database function instead of from a procedure. Albeit rare, it is something that can happen and you won't be able to solve with a bit of extra work. Assume the following function:
 
@@ -712,7 +712,7 @@ We use the getOneOrNullResult() so $result is null if nothing is found or just a
 
 That code is actually very clear and concerned only with getting the information. All transformations and checks are done in the template where information will be displayed.
 
-## Exceptions in procedures.
+### Exceptions in procedures.
 
 A quick note: if you are into following the spirit of keeping your database concerns inside your database perhaps you'd like to know how procedure exceptions are reported when they are thrown within the context of a NativeQuery call. This code will create a function that will return true when its parameter is odd and throw and exception when it is even.
 
@@ -779,11 +779,14 @@ A few things of note:
 	- Pay close attention to how we map this alias to an array key with the ResultSetMapping object (if we didn't do that there would be no results!).
 	- Have you already noticed the problem with that procedure?. That's right: contacts are not assigned to any contact book.
 
-## In and out parameters.
+### Getting closer to PDO.
 
-//TODO: This section should cover in and out parameters for database procedures.
-
-## Getting closer to PDO.
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
 
 //GETTING CLOSER TO PDO. IMPLEMENTS THE PDO INTERFACE.
 
@@ -797,6 +800,25 @@ A few things of note:
 	$wr=$this->get('database_connection')->getWrappedConnection();
 
 //EXCEPTIONS AGAIN.
+
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO//TODO
+
+### Last words on databases and doctrine.
+
+These are a few things I purposedly left behind and some thoughts you may be interested in:
+
+	- Yes, there is a way to map the IN/OUT/INOUT parameters of your database procedures to PHP variables. No, I am not going to put any of that here. Honestly, when was the last time you were justified on doing that?
+	- Remember that you can (and should) put your ResultSetMapping objects within their respective entity repositories. If you are abusing a particular method of a repository you may wish to "cache" that ResultSetMapping object through a service (we'll see them in the next chapter) that returns it or through static private properties of the repository (I actually prefer the former, as the latter seems a bit un-symfony-ish.
+	- If you are using NativeQuery objects to collect scalar information (such as information for a report), please, be clean and put all mapping and queries into a service.
+	- This one is important: you don't have to use Doctrine if you don't want to! (but you should at least try to learn it, it comes bundled with symfony for a reason).
+	- If your team and project allows it, consider separating database logic from application login using stored procedures in your databse. Of course, persisting entities is fast and easy through PHP code (so is deleting or updating entities) but the fact of the matter is that to achieve true "separation of concerns" (something we all have heard or read of) you must separate your platform flow from database specific code. This also allows you to work with database specialists and focus on coding your application logic (is it me or are the lines blurry everywhere?).
+	- Conversedly, doctrine is fast (and even fun) for quick prototyping. The symfony console will let you work with entities effortlessly (it will even create forms for your entities) and that's the kind of heavy lifting you want to avoid when prototyping.
+	- When using NativeQuery objects, try not to add your parameters through variable interpolation ("CALL my_procedure($myparam1, $myparam2)") but use placeholders instead ("CALL my_procedure(?,?)") and later set the parameters through setParameter(). Variable interpolation is the thing SQLInjections and nightmares are made of. Best get used to avoiding those.
 
 ## Creating custom services
 
