@@ -1,4 +1,5 @@
-# Refresh Symfony
+Refresh Symfony
+===============
 
 A small project created to remember how Symfony 2.8 works and also serve as a reference... This is not meant to be a symfony crash course, but rather a refresher (hence the name).
 
@@ -17,7 +18,11 @@ Each step will have examples of code in the repository. All work will be done wi
 
 One more thing, topics are not restricted to their chapter (for example, we see some more twig features in the database chapter). Knowledge is just added incrementally.
 
-## Creating the project and setting it up.
+# My setup.
+
+I am using a Lubuntu 14 machine, with Xampp 1.8.3-2. That's PHP 5.5.6, Mysql 5.6.14 and Apache 2.4.7.
+
+# Creating the project and setting it up.
 
 First things first, this is how you create the project.
 
@@ -38,7 +43,22 @@ It is likely that it will complain about the cache and log directories not being
 
 In any case, fix whatever you need from "config".
 
-## Setting it up on GIT...
+# Erasing unused files and entries.
+
+There are a few files we are not going to use, so get rid of them:
+
+	- rm src/AppBundle/Controller/TestController.php
+	- rm -rf app/Resources/views/default/
+	- rm app/Resources/views/base.html.twig
+	- rm -rf src/AppBundle/Tests
+
+Also, clean up the contents of - but don't delete - this file:
+
+	- app/config/routing.ytml
+
+That's enough for now. There are a few full bundles and configuration entries we are not going to use, but let's not worry about that now. Later, if you feel the need, check out the doctrineless-symfony repository to learn about bundle removal.
+
+# Setting it up on GIT...
 
 This one is easy:
 
@@ -50,7 +70,7 @@ This one is easy:
 
 The -u is to set the tracking of your branches.
 
-## Creating a quick controller.
+# Creating a quick controller.
 
 This should be done in two parts: the route and the controller. Let us start with the route. Open the file at:
 
@@ -104,11 +124,11 @@ Take a look at how the two halves match:
 
 And that's about it.
 
-## Using twig.
+# Using twig.
 
 Next we are off to use a bit of twig in many levels. We will create a base view template and from there extend with other functionality. 
 
-### The master template.
+## The master template.
 
 First, create the template file.
 
@@ -149,7 +169,7 @@ We are going to hook our previous controller to this view. Edit the FirstRouteCo
 
 And try to navigate to the route. You should see that both the bootstrap and our own css are loaded and that we have a template in place. 
 
-### The secondary template.
+## The secondary template.
 
 We will create a secondary template for our route in which we will alter a few blocks to demonstrate how it goes. In this case, we will alter the controller again. Instead of rendering master.html.twig we will ask it to render "first-template.html.twig". We'll also leave the second parameter empty for now.
 
@@ -175,13 +195,13 @@ The final part would be to pass a variable to twig. The logic asked for a "somet
 
 That concludes the twig crash course.
 
-## Databases and Doctrine.
+# Databases and Doctrine.
 
 Doctrine is huge and I can't quite see the point in many of its features (do I really need a query builder? do I really want to delegate database related code to my PHP code?... but then again, that's strictly personal). Still, that's the ORM bundled with Symfony and even if we could use another (remember that Symfony uses some parts of Doctrine even for non-database stuff, so no complete removal for you), I think of it as kind of a... default.
 
-### Configuration
+## Configuration
 
-The first thing we need to do is to have a database running. In this case, with Xampp installed I am running a MariaDB database that luckily behaves like MySQL. The access parameters must be set in the app/config/parameters.yml file:
+The first thing we need to do is to have a database running. In this case, with Xampp installed with MySQL... Start your database server and configure its access parameters in the app/config/parameters.yml file:
 
     database_host: Your host... most likely "localhost" if you are developing locally.
     database_port: The port... You can leave it at null for sensible defaults.
@@ -197,7 +217,7 @@ These values will later be imported into app/config/config.yml. If we want to kn
 
 If we see an error, then we did something wrong (maybe the database does not exist).
 
-### Troubleshooting with XAMPP.
+## Troubleshooting with XAMPP.
 
 If you are working with XAMPP and cannot execute the symfony console commands that will follow in this section it is likely that you may face one of these problems:
 
@@ -217,7 +237,7 @@ If you are working with XAMPP and cannot execute the symfony console commands th
 			- sudo chmod -R 0775 app/cache
 		- If you are inclined to change the user Apache runs as or to use ADL follow the solutions in https://symfony.com/doc/2.8/setup/file_permissions.html
 
-### Entities and mapping.
+## Entities and mapping.
 
 For this example we will create a very simple structure of entities: we want a list of things people borrowed from us. First we will describe the mapping.
 
@@ -242,7 +262,7 @@ There will be an error because there is no borroweditems table. It is actually a
 
 That will create the borroweditems table. If you wish to proceed classic style just log into your database and create the tables as you have always done.
 
-### Persisting data.
+## Persisting data.
 
 In order to persist our data we are going to create a new controller. Choose your own route and controller name and do the steps seen in the section "Creating a quick controller". Use this code for the controller:
 
@@ -280,7 +300,7 @@ In order to persist our data we are going to create a new controller. Choose you
 
 Navigate to it. You should see the master response and there should be three new entities in the table.
 
-### Retrieving data.
+## Retrieving data.
 
 We are going to be adding a new action to the controller used in the previous section. Do the work you need to set up your routes and use this code for the action:
 
@@ -322,7 +342,7 @@ In order to update your tables, setup a new action and use this code that combin
 
 Check with your database that data was changed.
 
-### Removing data.
+## Removing data.
 
 Same as before. Setup a new action with this:
 
@@ -340,7 +360,7 @@ Same as before. Setup a new action with this:
 
 And check with your database.
 
-### Custom repositories
+## Custom repositories
 
 We are going to add a custom repository. For that, we will first create a new Entity so we don't have to touch our previous examples. This entity will be a "person", with name and surname. Follow these steps:
 
@@ -408,7 +428,7 @@ One thing of note: using custom repositories does not disable the "built in" fin
 
 	$this->get('doctrine')->getRepository('AppBundle:Person')->findByName('Peter');
 
-### Relationships
+## Relationships
 
 Entities can be related to one another taking advantage of foreign keys in your database. To demonstrate that we are going to create two new enties and relate them. Our two entities will be a contact book and a contact. A contact book has a name and many contacts and a contact has a name, a phone number, an email and belongs to a single contact book. 
 
@@ -484,7 +504,7 @@ Now, before pairing that to a controller we will create a new twig template. We 
 	- Inside the contact-book template we are using b (as in book) and (c as in contact) to refer to book and contact objects, calling the methods as we need (we could actually go b.name and twig would infer b.getName() for us).
 	- Most importantly, we can use b.getContacts() and get an array of contacts, as it pertains to the mapping we did!.
 
-### Database Layer interaction.
+## Database Layer interaction.
 
 If you wish to keep everything where it belongs, perhaps you'd like to skip the DQL and query building and directly code stored procedures into your database. For this example we will reconstruct the previous controllers using stored procedures and trying to avoid Doctrine queries as much as possible.
 
@@ -607,7 +627,7 @@ An explanation of what it does:
 
 With this, you can call any kind of procedure that returns rows and use the data as you see fit while still retaining the ability to use Doctrine (honestly, in this example Doctrine is completely useless anyway). Of course, I forgot to mention that you can put all the ResultSetMapping and native query code into any repository of any entity and have clear, defined and structured code as a result. I leave that as an exercise to you (actually, it boils down to cut and paste the code and return something from the repository method).
 
-### Single results and calling functions.
+## Single results and calling functions.
 
 You may find yourself in a situation when you need to retrieve a value from a database function instead of from a procedure. Albeit rare, it is something that can happen and you won't be able to solve with a bit of extra work. Assume the following function:
 
@@ -712,7 +732,7 @@ We use the getOneOrNullResult() so $result is null if nothing is found or just a
 
 That code is actually very clear and concerned only with getting the information. All transformations and checks are done in the template where information will be displayed.
 
-### Exceptions in procedures.
+## Exceptions in procedures.
 
 A quick note: if you are into following the spirit of keeping your database concerns inside your database perhaps you'd like to know how procedure exceptions are reported when they are thrown within the context of a NativeQuery call. This code will create a function that will return true when its parameter is odd and throw and exception when it is even.
 
@@ -779,7 +799,7 @@ A few things of note:
 	- Pay close attention to how we map this alias to an array key with the ResultSetMapping object (if we didn't do that there would be no results!).
 	- Have you already noticed the problem with that procedure?. That's right: contacts are not assigned to any contact book.
 
-### Getting closer to PDO.
+## Getting closer to PDO.
 
 During the last chapter we have been twisting the ORM Doctrine components to get closer to the database using NativeQuery objects. These techniques still bind us to ResultSetMapping, which may be undesirable in some contexts. In this chapter we will get as close to PDO as we can within the limits imposed by Doctrine, which is pretty close.
 
@@ -813,11 +833,11 @@ So... you can just use it as if it were your own PDO class, minding that stateme
 	- Queries are not caught by the symfony debug bar.
 	- You found again the pesky LIKE syntax for query parameters: you need to add the % wildcard in the parameter and not in the query.
 
-### Doctrineless symfony.
+## Doctrineless symfony.
 
 In the previous example we used Doctrine with only the DBAL (Database Abstraction Layer) components (without the ORM - Object Relational Mapping - parts). If you are interested in completely do away with Doctrine (maybe you are using symfony to create a REST API and your database administrator is a demigod that did procedures for absolutely everything), please, check my doctrineless-symfony repository, which will follow a format close to this one and will use pure PDO to work with database stuff.
 
-### Last words on databases and doctrine.
+## Last words on databases and doctrine.
 
 These are a few things I purposedly left behind and some thoughts you may be interested in:
 
@@ -830,16 +850,18 @@ These are a few things I purposedly left behind and some thoughts you may be int
 	- Conversedly, doctrine is fast (and even fun) for quick prototyping. The symfony console will let you work with entities effortlessly (it will even create forms for your entities) and that's the kind of heavy lifting you want to avoid when prototyping.
 	- When using NativeQuery objects, try not to add your parameters through variable interpolation ("CALL my_procedure($myparam1, $myparam2)") but use placeholders instead ("CALL my_procedure(?,?)") and later set the parameters through setParameter(). Variable interpolation is the thing SQLInjections and nightmares are made of. Best get used to avoiding those.
 
-## Creating custom services
+# Creating custom services
 
 //TODO
 
-## Forms
+# Forms
 
 //TODO
 
-## Security and users.
+# Security and users.
 
 //TODO.
 
-## Creating console commands.
+# Creating console commands.
+
+//TODO.
