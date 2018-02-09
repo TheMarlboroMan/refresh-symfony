@@ -1,0 +1,25 @@
+AppBundle\Entity\Book:
+    type: entity
+    table: books
+    repositoryClass: AppBundle\Repository\BookRepository
+    id:
+        id:
+            type: integer
+            id: true
+            generator:
+                strategy: AUTO
+    fields:
+        title:
+            type: string
+            length: '50'
+        author:
+            type: string
+            length: '50'
+        publisher:
+            type: string
+            length: '50'
+        date:
+            type: datetime
+        summary:
+            type: text
+    lifecycleCallbacks: {  }

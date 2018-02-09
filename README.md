@@ -13,6 +13,7 @@ It will cover the next steps:
 - Custom services.
 - Forms.
 - Security and users.
+- Creating console commands.
 
 Each step will have examples of code in the repository. All work will be done with new examples so the code in the repository is always "final", that is, new features are introduced in new modules of the final application. It is recommended that the steps are followed one by one since the work is incremental. The idea is that all sections can be read in order and their instructions carried out so in the end we have some basic Symfony knowledge.
 
@@ -20,7 +21,7 @@ One more thing, topics are not restricted to their chapter (for example, we see 
 
 # My setup.
 
-I am using a Lubuntu 14 machine, with Xampp 1.8.3-2. That's PHP 5.5.6, Mysql 5.6.14 and Apache 2.4.7.
+I am using a Lubuntu 14 machine, with Xampp 1.8.3-2. That's PHP 5.5.6, Mysql 5.6.14 and Apache 2.4.7. I don't use the symfony built in server, but create my applications in the htdocs directory provided by Xampp.
 
 # Creating the project and setting it up.
 
@@ -586,7 +587,7 @@ In detail you can see that:
 	- We add a joined entity result: the contact, aliased as "c", whose parent is the entity aliased as "cb" (in this case ContactBook, we aliased it as "b" before) and has a property "contacts" to store the "c" entity. 
 	- Next we define the fields for "c". I never tried but I think you can do these field definitions in any order you wish.
 
-Try it and check the results: the same, but we did only one database call. That doesn't neccesarily mean faster code, but it means that your database code is in control now. Even better, you no longer need to ask your database specialist to learn DQL, or even better, you can ask your database specialist to write all queries for you. 
+Try it and check the results: the same, but we did only one database call. That doesn't neccesarily mean faster code, but it means that your database code is in control now: you no longer need to ask your database specialist to learn DQL, or even better, you can ask your database specialist to write all queries for you. Isn't that a relief?
 
 Still, this technique allows only for values mapped to entities. What about a simple procedure that counts contacts and groups them by book?. Execute the following in your database prompt:
 
@@ -835,7 +836,7 @@ So... you can just use it as if it were your own PDO class, minding that stateme
 
 ## Doctrineless symfony.
 
-In the previous example we used Doctrine with only the DBAL (Database Abstraction Layer) components (without the ORM - Object Relational Mapping - parts). If you are interested in completely do away with Doctrine (maybe you are using symfony to create a REST API and your database administrator is a demigod that did procedures for absolutely everything), please, check my doctrineless-symfony repository, which will follow a format close to this one and will use pure PDO to work with database stuff.
+In the previous example we used Doctrine with only the DBAL (Database Abstraction Layer) components (without the ORM - Object Relational Mapping - parts). If you are interested in completely doing away with Doctrine (maybe you are using symfony to create a REST API and your database administrator is a demigod that did procedures for absolutely everything), please, check my doctrineless-symfony repository, which will follow a format close to this one and will use pure PDO to work with database stuff.
 
 ## Last words on databases and doctrine.
 
@@ -852,11 +853,115 @@ These are a few things I purposedly left behind and some thoughts you may be int
 
 # Creating custom services
 
-//TODO
+Services are at the heart of symfony applications. If you are unclear as to what a service is, think of them as a class that does something. Do you need to create a user in your database?. Create a service. Do you need to remove said user?. Create a service. Do you need a list of all users?. Create a service. You can do all of these in your controllers, but it is a better idea to have a service that does the dirty work so your controllers stay lean and you can perform the same actions from many points in your application without code duplication.
+
+The paragraph above refers to services as the "doers" of your application domain, but you can have services that perform generic actions outside your application logic: database connections, filesystem browsing, logging, mailing... You name it. Plus value: symfony already has built-in services for many of these tasks.
+
+In any case, this section will review how to create our own services. First we need a setup, with a new set of tables to test. As we have already exhausted the "contacts", "borrowed items" and "people" examples, we will have to think of another one. Because the focus here needs to be on services, let us keep it simple: we will use a single table of books with title, date of publishing, author, publisher and short summary. Before going ahead and creating the entities by hand, try this other method:
+
+	- php app/console doctrine:generate:entity
+		- Beware, this one is "entity" and not "entities".
+		- Answer the questions posed by the command line.
+			- When asked about the name, use AppBundle:Book
+			- When asked about the format, use yml.
+			- The primary key will be added automatically, so add the rest of the fields
+				- title will be a string of 50 length, not null, not unique (yeah)
+				- author will be the same.
+				- publisher will be the same.
+				- date will be a datetime, not null, not unique.
+				- summary will be a text, not null, not unique.
+			- When done, just hit enter. It will create the mapping, the repository and the entity class for you. Kind of cool. Specially if you are lazy.
+			- Check the mapping file. If the table is null, just set it to "books".
+	- Validate the schema with php app/console doctrine:schema:validate
+	- Because it will not be in sync, update the schema with php app/console doctrine:schema:update (or create, if you are starting here). 
+	- When you check that you need a new query to update, run php app/console doctrine:schema:update --force
+	- Check with your database that the table was created (show tables like 'books', describe books).
+
+## Service primer.
+
+Now that everything is in order, let us create our first service, to make contact:
+
+	- First, create the directory where your service files will live with mkdir src/AppBundle/Service
+	- Next, create your service file. This time you can be creative with your naming: no need to end it in service. I did it with touch src/AppBundle/Service/Hello.php
+	- Edit your new file following these rules:
+		- The namespace must match the path in disk (so, namespace AppBundle\Service).
+		- Your classname must match your filename (Hello, in our case).
+		- Create a public method that does something simple (as in... public function sayHello() {return "Hello";}
+		- Your service file is done.
+
+Next, explain symfony how you create your service. This is done in the app/config/services.yml file... The file should already have a helpful comment looking like this:
+
+services:
+    #service_name:
+    #    class: AppBundle\Directory\ClassName
+    #    arguments: ['@another_service_name', 'plain_value', '%parameter_name%']
+
+So you can turn it into this (skip the arguments for now).
+
+services:
+    hello:
+        class: AppBundle\Service\Hello
+        arguments: []
+
+And that's about it. To test your service, create a route and map it to a new controller and action. Again, this is on you (remember to extend the use Symfony\Bundle\FrameworkBundle\Controller\Controller class!!!, this is important not only to render templates but also to access services!!!). When you have it, use this code for your action:
+
+	$service_says=$this->container->get('hello')->sayHello();
+	return $this->render('first-template.html.twig', ['something' => 'Service says: '.$service_says]);
+
+Navigate to your controller and check your results. Now study the code:
+
+	- We access the service named 'hello' (remember, that's the name we gave it in app/config/services.yml) with $this->container->get(). $this->container is only available for classes that extend the controller. It is called the "service container".
+	- The return of $this->container->get() is a service. In our case, an instance of AppBundle\Service\Hello. We can call the methods of this object, of course.
+	- The rest is pretty much self explanatory.
+
+## Services and permanence.
+
+Now, let's remember something important about services: the instance is only create when you get() it from the container. Once you get() it for the first time, the next time you get() it, the same instance will be returned!. To test this, create a new service that fullfills these requirements:
+
+	- It has a private (non static) variable, a $counter. By default its value is 0.
+	- It has a method addToCounter which adds one to the counter.
+	- It has a method getCount which returns the counter value.
+	- Be picky with the name you register in services.yml. I can tell you now that dashes won't work.
+
+Create the class and register the service as you did before (in the repository it is called "AlwaysTheSame"). Also create a new route and action. Use this code (make the needed changes to your own service name!):
+
+	$this->container->get('alwaysTheSame')->addToCounter();
+	$this->container->get('alwaysTheSame')->addToCounter();
+	$this->container->get('alwaysTheSame')->addToCounter();
+
+	return $this->render('first-template.html.twig', ['something' => 'Total counter: '.$this->container->get('alwaysTheSame')->getCounter()]);
+
+Predictably, you'll get 3 from the getCounter() call. In fact, that code is equivalent to:
+
+	$service=$this->container->get('alwaysTheSame');
+	$service->addToCounter();
+	$service->addToCounter();
+	$service->addToCounter();
+
+	return $this->render('first-template.html.twig', ['something' => 'Total counter: '.$service->getCounter()]);
+
+In short, each time you call get() you get the same object. There is a way to avoid that and it is to add the key "shared" with the value "false" to your services.yml file, right there with the arguments and class of your service. There is a 'uniqueService' in the repository, if you want to check that out (look for the "services-and-uniqueness" routing, it is a short diversion).
+
+## A real service.
+
+Now it is time to create a real service: the book service. It will be in charge of creating, updating, erasing and retrieving books. These are the four actions in any CRUD you can find, so you can guess now that your service will need access to Doctrine. Think back on how you got Doctrine to work on previous sections:
+
+	- You used $this->get('doctrine') from your controller class...
+	- ... but you don't have direct access to the constructor of your service so you can pass any entity manager or repository ...
+	- ... neither can you call $this->get('doctrine') from your service, as it is not a controller (okay, technically it could be, but forget about that).
+
+//TODO: I AM HERE!!!!!!!!
 
 # Forms
 
-//TODO
+//TODO TODO TODO TODO TODO TODO
+
+In order to review concepts related to entities and relationships we will have two tables: museums and pictures. Each museum has a number of pictures and vice-versa. Our example will let us browse all pictures (and retrieve information about their museum) or all museums (retrieving information about the museum itself).
+
+Let us start by creating the entities. 
+
+	- Museum has name, city and a collection of pictures. Of course, there will be a png file in the filesystem with the museum in it.
+	- Picture has name, name of the author, date (as a datetime object) and the museum it belongs to. Again, there will be a png file with the museum in it.
 
 # Security and users.
 

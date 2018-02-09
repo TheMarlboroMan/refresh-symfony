@@ -86,3 +86,15 @@ dbal-2:
 dbal-transactions:
    path: dbal/transactions
    defaults: {_controller: AppBundle:Dbal:dbalTransactions}
+
+first-service-test:
+   path: services/first-service
+   defaults: {_controller: AppBundle:Services:firstService}
+
+services-and-permanence:
+   path: services/always-the-same-service
+   defaults: {_controller: AppBundle:Services:alwaysTheSameService}
+
+services-and-uniqueness:
+   path: services/unique-service
+   defaults: {_controller: AppBundle:Services:uniqueService}

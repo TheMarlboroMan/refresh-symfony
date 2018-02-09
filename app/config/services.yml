@@ -4,6 +4,19 @@ parameters:
     #parameter_name: value
 
 services:
+    hello:
+        class: AppBundle\Service\Hello
+        arguments: []
+
+    alwaysTheSame:
+        class: AppBundle\Service\AlwaysTheSame
+        arguments: []
+
+    uniqueService:
+        class: AppBundle\Service\UniqueService
+        shared: false
+        arguments: []
+
     #service_name:
     #    class: AppBundle\Directory\ClassName
     #    arguments: ['@another_service_name', 'plain_value', '%parameter_name%']
