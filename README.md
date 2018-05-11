@@ -6,6 +6,7 @@ A small project created to remember how Symfony 2.8 works and also serve as a re
 It will cover the next steps:
 
 - Creating the project and setting it up.
+- How to use.
 - Setting it up on GIT.
 - Creating a quick controller.
 - Using twig.
@@ -22,6 +23,15 @@ One more thing, topics are not restricted to their chapter (for example, we see 
 # My setup.
 
 I am using a Lubuntu 14 machine, with Xampp 1.8.3-2. That's PHP 5.5.6, Mysql 5.6.14 and Apache 2.4.7. I don't use the symfony built in server, but create my applications in the htdocs directory provided by Xampp.
+
+# How to use.
+
+The idea here is to follow the steps listed here and IGNORE the code provided by the repository... However, if you feel like you need to use the repository itself, then, by all means:
+
+- cd into the repository.
+- run composer update (usually like php -d memory_limit=-1 /path/to/composer update, without memory limit).
+- feed composer the data it needs (like database user and such).
+- fix the cache permissions (read on).
 
 # Creating the project and setting it up.
 
